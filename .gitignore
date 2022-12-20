@@ -3,3 +3,15 @@
 ################################################################################
 
 /.vs/ProjEXEC/v16
+/Built/Proj.exe
+/Built/Proj.pdb
+/Intermidiate/Proj.tlog
+/Intermidiate/main.obj
+/Intermidiate/mglApp.obj
+/Intermidiate/mglCamera.obj
+/Intermidiate/mglError.obj
+/Intermidiate/mglMesh.obj
+/Intermidiate/mglShader.obj
+/Intermidiate/Proj.ilk
+/Intermidiate/vc142.idb
+/Intermidiate/vc142.pdb
