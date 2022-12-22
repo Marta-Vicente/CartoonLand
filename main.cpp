@@ -147,6 +147,7 @@ void MyApp::createMeshes() {
 	names[3] = "paralelogram.obj";
 	names[4] = "purple_triangle.obj";
 	names[5] = "red_triangle.obj";
+	//names[6] = "spider.obj"; 
 	names[6] = "green_cube.obj"; 
 
 	colors[0] = { 0.1f, 0.9f, 0.9f };
@@ -343,6 +344,7 @@ void MyApp::draw_meshs() {
 				* rotationBetweenPlanes
 				* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
 			glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(M));
+
 			obj->Mesh->draw();
 			break;
 		default:
