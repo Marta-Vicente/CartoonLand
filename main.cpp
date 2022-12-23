@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <string>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -26,7 +27,11 @@
 #include <glm/gtx/string_cast.hpp>	
 
 #include <irrKlang.h>
+#include <FreeImage.h>
 
+////////////////////////////////////////////////////////////////////////// WINDOW
+int windowWidth, windowHeight;
+int snapNum = 0;
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
@@ -52,7 +57,8 @@ public:
 	void displayCallback(GLFWwindow* win, double elapsed) override;
 	void windowSizeCallback(GLFWwindow* win, int width, int height) override;
 	void windowCloseCallback(GLFWwindow* win) override;
-	void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+	void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) override;
+	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) override;
 private:
 	const GLuint POSITION = 0, COLOR = 1, UBO_BP = 0;
 
@@ -81,6 +87,7 @@ private:
 
 	bool OLD_P_CLICKED = false;
 	bool OLD_C_CLICKED = false;
+	bool OLD_S_CLICKED = false;
 
 	bool camera1_on = true;
 
@@ -127,6 +134,8 @@ private:
 	void render();
 	//window size
 	void updateMatrices(float ratio);
+	//
+	void snapshot(GLFWwindow* win, int width, int height);
 };
 
 
@@ -268,7 +277,7 @@ void MyApp::createCamera() {
 void MyApp::update(GLFWwindow* win) {
 	//INPUT
 	processMouseMovement(win);
-	processKeyInput(win);
+	//processKeyInput(win);
 
 	//CAMERAS
 	if (camera1_on) {
@@ -489,6 +498,9 @@ void MyApp::windowSizeCallback(GLFWwindow * win, int winx, int winy) {
 	// change projection matrices to maintain aspect ratio
 	float ratio = (float)winx / (float)winy;
 
+	windowWidth = winx;
+	windowHeight = winy;
+
 	updateMatrices(ratio);
 
 }
@@ -504,13 +516,41 @@ void MyApp::windowCloseCallback(GLFWwindow * win) {
 	}
 }
 
+void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+
+	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+		std::cout << "Snapshot taken" << std::endl;
+		snapshot(window, windowWidth, windowHeight);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////// EXTRA
+void MyApp::snapshot(GLFWwindow* win, int width, int height) {
+
+	unsigned char* image;
+	image = (unsigned char*)malloc((3 * width * height) * sizeof(char));
+
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+
+	glReadBuffer(GL_BACK_LEFT);
+	glReadPixels(0, 0, width, height, GL_BGR, GL_UNSIGNED_BYTE, image);
+
+	FIBITMAP* finalImage = FreeImage_ConvertFromRawBits(image, width, height,
+		3 * width, 24, 0xFF0000,
+		0x00FF00, 0x0000FF, false);
+	
+	FreeImage_Save(FIF_BMP, finalImage, "../snaphot.bmp", 0);
+}
 /////////////////////////////////////////////////////////////////////////// MAIN
 
 int main(int argc, char* argv[]) {
+	windowWidth = 1600;
+	windowHeight = 1200;
+
 	mgl::Engine& engine = mgl::Engine::getInstance();
 	engine.setApp(new MyApp());
 	engine.setOpenGL(4, 6);
-	engine.setWindow(1600, 1200, "OUI OUI OUI OUI OUI", 0, 1);
+	engine.setWindow(windowWidth, windowHeight, "Cartoon Land", 0, 1);
 	engine.init();
 	engine.run();
 	exit(EXIT_SUCCESS);
