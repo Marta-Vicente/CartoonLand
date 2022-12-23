@@ -538,7 +538,7 @@ void MyApp::snapshot(GLFWwindow* win, int width, int height) {
 		3 * width, 24, 0xFF0000,
 		0x00FF00, 0x0000FF, false);
 
-	std::string s = "../snaphot" + std::to_string(snapNum) + ".bmp";
+	std::string s = "../Snapshots/snaphot" + std::to_string(snapNum) + ".bmp";
 	const char* c = s.c_str();
 	std::cout << "Snapshot taken: " << c << std::endl;
 	FreeImage_Save(FIF_BMP, finalImage, c, 0);
