@@ -519,7 +519,6 @@ void MyApp::windowCloseCallback(GLFWwindow * win) {
 void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 
 	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-		std::cout << "Snapshot taken" << std::endl;
 		snapshot(window, windowWidth, windowHeight);
 	}
 }
@@ -538,8 +537,12 @@ void MyApp::snapshot(GLFWwindow* win, int width, int height) {
 	FIBITMAP* finalImage = FreeImage_ConvertFromRawBits(image, width, height,
 		3 * width, 24, 0xFF0000,
 		0x00FF00, 0x0000FF, false);
-	
-	FreeImage_Save(FIF_BMP, finalImage, "../snaphot.bmp", 0);
+
+	std::string s = "../snaphot" + std::to_string(snapNum) + ".bmp";
+	const char* c = s.c_str();
+	std::cout << "Snapshot taken: " << c << std::endl;
+	FreeImage_Save(FIF_BMP, finalImage, c, 0);
+	snapNum++;
 }
 /////////////////////////////////////////////////////////////////////////// MAIN
 
