@@ -27,7 +27,6 @@
 
 #include <irrKlang.h>
 
-
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
@@ -38,11 +37,9 @@ const float soundVolume = 0.3f;
 struct Mesh_obj
 {
 	mgl::Mesh* Mesh = nullptr;
-	mgl::ShaderProgram* Shaders = nullptr;
-	Mesh_obj* next_pointer = nullptr;
+	//mgl::ShaderProgram* Shaders = nullptr;
 	glm::vec3 color;
-
-} Mesh_obj;
+} ;
 
 
 class MyApp : public mgl::App {
@@ -94,13 +91,11 @@ private:
 	mgl::ShaderProgram* Shaders = nullptr;
 
 	//Camera
-
 	mgl::Camera* Camera = nullptr;
 	mgl::Camera* Camera2 = nullptr;
 	GLint ModelMatrixId;
 
-	//Camera Types
-
+	//CAMERA TYPES
 	// Orthographic LeftRight(-2,2) BottomTop(-2,2) NearFar(1,10)
 	glm::mat4 ProjectionMatrix1 =
 		glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 1.0f, 15.0f);
@@ -109,10 +104,7 @@ private:
 	glm::mat4 ProjectionMatrix2 =
 		glm::perspective(glm::radians(30.0f), 4.0f / 3.0f, 1.0f, 30.0f);
 
-	static const int MESH_SIZE = 7;
-
-	struct Mesh_obj* Head;
-	struct Mesh_obj* Tail;
+	std::vector<Mesh_obj> meshes;
 
 	//Movement var
 	float parametric_movement = 0.0f;
@@ -120,13 +112,17 @@ private:
 	const float max_param = 1.0f;
 	const float min_param = 0.0f;
 
+	//init
 	void createMeshes();
 	void createShaderPrograms();
 	void createCamera();
-	void drawScene();
+	//update
+	void update(GLFWwindow* win);
 	void processMouseMovement(GLFWwindow* win);
 	void processKeyInput(GLFWwindow* win);
-	void draw_meshs();
+	//display
+	void display();
+	//window size
 	void updateMatrices(float ratio);
 };
 
@@ -138,43 +134,32 @@ void MyApp::createMeshes() {
 
 	std::string mesh_dir = "../assets/";
 
-	std::string names[MESH_SIZE];
-	glm::vec3 colors[MESH_SIZE];
+	std::vector<std::string> namesVector;
+	std::vector<glm::vec3> colorsVector;
 
-	names[0] = "blue_triangle.obj";
-	names[1] = "pink_triangle.obj";
-	names[2] = "orange_triangle.obj";
-	names[3] = "paralelogram.obj";
-	names[4] = "purple_triangle.obj";
-	names[5] = "red_triangle.obj";
-	//names[6] = "spider.obj"; 
-	names[6] = "green_cube.obj"; 
+	namesVector.push_back("blue_triangle.obj");
+	namesVector.push_back("pink_triangle.obj");
+	namesVector.push_back("orange_triangle.obj");
+	namesVector.push_back("paralelogram.obj");
+	namesVector.push_back("purple_triangle.obj");
+	namesVector.push_back("red_triangle.obj");
+	namesVector.push_back("green_cube.obj");
 
-	colors[0] = { 0.1f, 0.9f, 0.9f };
-	colors[1] = { 0.9f, 0.45f, 0.5f };
-	colors[2] = { 0.9f, 0.5f, 0.1f };
-	colors[3] = { 0.9f, 0.7f, 0.1f };
-	colors[4] = { 0.7f, 0.1f, 0.9f };
-	colors[5] = { 0.9f, 0.1f, 0.1f };
-	colors[6] = { 0.1f, 0.9f, 0.1f };
+	colorsVector.push_back({ 0.1f, 0.9f, 0.9f });
+	colorsVector.push_back({ 0.9f, 0.45f, 0.5f });
+	colorsVector.push_back({ 0.9f, 0.5f, 0.1f });
+	colorsVector.push_back({ 0.9f, 0.7f, 0.1f });
+	colorsVector.push_back({ 0.7f, 0.1f, 0.9f });
+	colorsVector.push_back({ 0.9f, 0.1f, 0.1f });
+	colorsVector.push_back({ 0.1f, 0.9f, 0.1f });
 
-	Head = new struct Mesh_obj;
-	Tail = new struct Mesh_obj;
-	Head->Mesh = new mgl::Mesh();
-	Head->Mesh->joinIdenticalVertices();
-	Head->Mesh->create(mesh_dir + names[0]);
-	Head->color = colors[0];
-	Tail = Head;
-
-	for (int i = 1; i < MESH_SIZE; i++) {
-
-		struct Mesh_obj* obj = new struct Mesh_obj;
-		obj->Mesh = new mgl::Mesh();
-		obj->Mesh->joinIdenticalVertices();
-		obj->Mesh->create(mesh_dir + names[i]);
-		obj->color = colors[i];
-		Tail->next_pointer = obj;
-		Tail = obj;
+	for (int i = 0; i < namesVector.size(); i++) {
+		Mesh_obj meshSingle;
+		meshSingle.Mesh = new mgl::Mesh();
+		meshSingle.Mesh->joinIdenticalVertices();
+		meshSingle.Mesh->create(mesh_dir + namesVector[i]);
+		meshSingle.color = colorsVector[i];
+		meshes.push_back(meshSingle);
 	}
 
 }
@@ -183,20 +168,18 @@ void MyApp::createMeshes() {
 ///////////////////////////////////////////////////////////////////////// SHADER
 
 void MyApp::createShaderPrograms() {
-
-	// CHNAGE HERE EVERY MESH HAS ITS ONW SHADER
 	Shaders = new mgl::ShaderProgram();
 	Shaders->addShader(GL_VERTEX_SHADER, "cube-vs.glsl");
 	Shaders->addShader(GL_FRAGMENT_SHADER, "cube-fs.glsl");
 
 	Shaders->addAttribute(mgl::POSITION_ATTRIBUTE, mgl::Mesh::POSITION);
-	if (Head->Mesh->hasNormals()) {
+	if (meshes[0].Mesh->hasNormals()) {
 		Shaders->addAttribute(mgl::NORMAL_ATTRIBUTE, mgl::Mesh::NORMAL);
 	}
-	if (Head->Mesh->hasTexcoords()) {
+	if (meshes[0].Mesh->hasTexcoords()) {
 		Shaders->addAttribute(mgl::TEXCOORD_ATTRIBUTE, mgl::Mesh::TEXCOORD);
 	}
-	if (Head->Mesh->hasTangentsAndBitangents()) {
+	if (meshes[0].Mesh->hasTangentsAndBitangents()) {
 		Shaders->addAttribute(mgl::TANGENT_ATTRIBUTE, mgl::Mesh::TANGENT);
 	}
 
@@ -233,8 +216,12 @@ void MyApp::createCamera() {
 
 const glm::mat4 ChangingModelMatrix = ModelMatrix;
 
-void MyApp::drawScene() {
+void MyApp::update(GLFWwindow* win) {
+	//INPUT
+	processMouseMovement(win);
+	processKeyInput(win);
 
+	//CAMERAS
 	if (camera1_on) {
 
 		glm::quat qy = glm::angleAxis(glm::radians(-alfa), axis_y);
@@ -272,20 +259,17 @@ void MyApp::drawScene() {
 		else
 			Camera2->setProjectionMatrix(ProjectionMatrix1);
 	}
-
-	draw_meshs();
 }
 
 
-void MyApp::draw_meshs() {
+void MyApp::display() {
 	Shaders->bind();
-	int i = 0;
 	glm::mat4 M;
 	glm::mat4 rotationBetweenPlanes = glm::rotate(glm::radians(parametric_movement*90.f), glm::vec3(1.f, 0.f, 0.f));
 	
-	for (struct Mesh_obj* obj = Head; obj != nullptr; obj = obj->next_pointer) {
+	for (int i = 0; i < meshes.size(); i++) {
 
-		glUniform3f(Shaders->Uniforms["Color"].index, obj->color.x, obj->color.y, obj->color.z);
+		glUniform3f(Shaders->Uniforms["Color"].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 		 
 		switch (i){
 		case 0: //blue_triangle
@@ -294,7 +278,7 @@ void MyApp::draw_meshs() {
 				* rotationBetweenPlanes
 				* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f));
 			glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(M));
-			obj->Mesh->draw();
+			meshes[i].Mesh->draw();
 			break;
 		case 1: //pink_triangle
 			M = ChangingModelMatrix 
@@ -302,7 +286,7 @@ void MyApp::draw_meshs() {
 				* rotationBetweenPlanes
 				* glm::rotate(glm::radians(parametric_movement * 45.f), glm::vec3(0.f, 1.f, 0.f));
 			glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(M));
-			obj->Mesh->draw();
+			meshes[i].Mesh->draw();
 			break;
 		case 2: //orange_triangle
 			M = ChangingModelMatrix
@@ -310,7 +294,7 @@ void MyApp::draw_meshs() {
 				* rotationBetweenPlanes
 				* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
 			glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(M));
-			obj->Mesh->draw();
+			meshes[i].Mesh->draw();
 			break;
 		case 3: //paralelogram
 			M = ChangingModelMatrix
@@ -319,7 +303,7 @@ void MyApp::draw_meshs() {
 				* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f))
 				* glm::rotate(glm::radians(parametric_movement * 180.f), glm::vec3(1.f, 0.f, 0.f));
 			glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(M));
-			obj->Mesh->draw();
+			meshes[i].Mesh->draw();
 			break;
 		case 4: //purple_triangle
 			M = ChangingModelMatrix
@@ -328,7 +312,7 @@ void MyApp::draw_meshs() {
 				* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f))
 				* glm::translate(glm::vec3(0.f, 0.f, -0.45f*parametric_movement));
 			glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(M));
-			obj->Mesh->draw();
+			meshes[i].Mesh->draw();
 			break;
 		case 5: //red triangle
 			M = ChangingModelMatrix 
@@ -337,20 +321,18 @@ void MyApp::draw_meshs() {
 				* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f))
 				* glm::translate(glm::vec3(0.45f * parametric_movement, 0.f, 0.f));
 			glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(M));
-			obj->Mesh->draw();
+			meshes[i].Mesh->draw();
 			break;
 		case 6: //green_cube
 			M = ChangingModelMatrix
 				* rotationBetweenPlanes
 				* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
 			glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(M));
-
-			obj->Mesh->draw();
+			meshes[i].Mesh->draw();
 			break;
 		default:
 			break;
 		}
-		i++;
 	}
 	Shaders->unbind();
 }
@@ -499,14 +481,14 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 ////////////////////////////////////////////////////////////////////// CALLBACKS
 
 void MyApp::initCallback(GLFWwindow * win) {
-
 	createMeshes();
 	createShaderPrograms(); // after mesh;
 	createCamera();
 
-	/* SOUND!*/
+	//SOUND
 	SoundEngine->play2D("../assets/surrender.mp3", true);
 	SoundEngine->setSoundVolume(soundVolume);
+
 }
 
 void MyApp::windowSizeCallback(GLFWwindow * win, int winx, int winy) {
@@ -523,14 +505,13 @@ void MyApp::windowSizeCallback(GLFWwindow * win, int winx, int winy) {
 }
 
 void MyApp::displayCallback(GLFWwindow * win, double elapsed) {
-	processMouseMovement(win);
-	processKeyInput(win);
-	drawScene();
+	update(win);
+	display();
 }
 
 void MyApp::windowCloseCallback(GLFWwindow * win) {
-	for (struct Mesh_obj* obj = Head; obj != nullptr; obj = obj->next_pointer) {
-		obj->Mesh->destroyBufferObjects();
+	for (int i=0; i < meshes.size(); i++) {
+		meshes[i].Mesh->destroyBufferObjects();
 	}
 }
 
