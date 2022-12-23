@@ -120,8 +120,8 @@ private:
 	void update(GLFWwindow* win);
 	void processMouseMovement(GLFWwindow* win);
 	void processKeyInput(GLFWwindow* win);
-	//display
-	void display();
+	//render
+	void render();
 	//window size
 	void updateMatrices(float ratio);
 };
@@ -262,7 +262,7 @@ void MyApp::update(GLFWwindow* win) {
 }
 
 
-void MyApp::display() {
+void MyApp::render() {
 	Shaders->bind();
 	glm::mat4 M;
 	glm::mat4 rotationBetweenPlanes = glm::rotate(glm::radians(parametric_movement*90.f), glm::vec3(1.f, 0.f, 0.f));
@@ -506,7 +506,7 @@ void MyApp::windowSizeCallback(GLFWwindow * win, int winx, int winy) {
 
 void MyApp::displayCallback(GLFWwindow * win, double elapsed) {
 	update(win);
-	display();
+	render();
 }
 
 void MyApp::windowCloseCallback(GLFWwindow * win) {
