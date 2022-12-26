@@ -30,16 +30,21 @@
 #include <FreeImage.h>
 
 ////////////////////////////////////////////////////////////////////////// WINDOW
+
 int windowWidth, windowHeight;
-////////////////////////////////////////////////////////////////////////// WINDOW
+
+////////////////////////////////////////////////////////////////////////// VARIABLES
+
 int snapNum = 1;
 #define TRANSF_MESHES 7
+
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
 const float soundVolume = 0.3f;
 
 ////////////////////////////////////////////////////////////////////////// MYAPP
+
 glm::mat4 ModelMatrix(1.0f);
 const glm::mat4 ChangingModelMatrix = ModelMatrix;
 
@@ -69,12 +74,12 @@ private:
 	glm::vec3 axis_z = { 0.0f, 0.0f, 1.0f };
 
 	// CAMERA1
-	glm::quat initial_postion_c1 = { 0.0f, 0.178f, 5.422f, 9.928f };
+	glm::quat initial_postion_c1 = { 3.0f, 10.f, 5.422f, 6.928f };
 	float alfa = 0.0f;
 	float beta = 0.0f;
 	int accelaration_x = 0;
 	int accelaration_y = 0;
-	float zoom = 2.f;
+	float zoom = 0.1f;
 	bool zooming = true;
 	bool projection_camera1 = true;
 
@@ -87,10 +92,6 @@ private:
 	float zoom2 = 2.f;
 	bool projection_camera2 = true;
 
-	bool OLD_P_CLICKED = false;
-	bool OLD_C_CLICKED = false;
-	bool OLD_S_CLICKED = false;
-
 	bool camera1_on = true;
 
 	glm::mat4 c1_ChangingViewMatrix;
@@ -98,9 +99,9 @@ private:
 
 	double xpos, ypos = 0;
 	double old_xpos, old_ypos = 0;
-	int button, action, mods;
 
-	mgl::ShaderProgram* Shaders = nullptr;
+	mgl::ShaderProgram* ShaderCel = nullptr;
+	mgl::ShaderProgram* ShaderPhong = nullptr;
 
 	//Camera
 	mgl::Camera* Camera = nullptr;
@@ -109,11 +110,11 @@ private:
 
 	//CAMERA TYPES
 	// Orthographic LeftRight(-2,2) BottomTop(-2,2) NearFar(1,10)
-	glm::mat4 ProjectionMatrix1 =
+	glm::mat4 ProjectionMatrixOrtho =
 		glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 1.0f, 15.0f);
 
 	// Perspective Fovy(30) Aspect(640/480) NearZ(1) FarZ(30)
-	glm::mat4 ProjectionMatrix2 =
+	glm::mat4 ProjectionMatrixPerspective =
 		glm::perspective(glm::radians(30.0f), 4.0f / 3.0f, 1.0f, 30.0f);
 
 	std::vector<Mesh_obj> meshes;
@@ -150,8 +151,9 @@ void MyApp::createMeshes() {
 
 	std::vector<std::string> meshesNames;
 	std::vector<glm::vec3> colors;
+	std::vector<glm::mat4> transformations;
 
-	meshesNames.push_back("blue_triangle.obj");
+	/*meshesNames.push_back("blue_triangle.obj");
 	colors.push_back({ 0.1f, 0.9f, 0.9f });
 	//--------------------------------------------------------------------------
 
@@ -172,12 +174,18 @@ void MyApp::createMeshes() {
 	//--------------------------------------------------------------------------
 
 	meshesNames.push_back("red_triangle.obj");
-	colors.push_back({ 0.9f, 0.1f, 0.1f });
+	colors.push_back({ 0.9f, 0.1f, 0.1f });*/
 	//--------------------------------------------------------------------------
 
-	meshesNames.push_back("green_cube.obj");
-	//meshesNames.push_back("pantheon.obj");
-	colors.push_back({ 0.1f, 0.9f, 0.1f });
+	//meshesNames.push_back("green_cube.obj");
+	meshesNames.push_back("pantheon.obj");
+	colors.push_back({ 0.9f, 0.5f, 0.1f });
+	transformations.push_back(glm::mat4(1.0));
+	//--------------------------------------------------------------------------
+	
+	meshesNames.push_back("pantheon.obj");
+	colors.push_back({ 0.9f, 0.9f, 0.1f });
+	transformations.push_back(glm::translate(glm::vec3(0.f, 5.f, 0.f)));
 	//--------------------------------------------------------------------------
 
 	for (int i = 0; i < meshesNames.size(); i++) {
@@ -186,9 +194,10 @@ void MyApp::createMeshes() {
 		meshSingle.Mesh->joinIdenticalVertices();
 		meshSingle.Mesh->create(mesh_dir + meshesNames[i]);
 		meshSingle.color = colors[i];
+		meshSingle.transformation = transformations[i];
 		meshes.push_back(meshSingle);
 	}
-	updateTransformationMatrices();
+	//updateTransformationMatrices();
 
 }
 
@@ -196,34 +205,56 @@ void MyApp::createMeshes() {
 ///////////////////////////////////////////////////////////////////////// SHADER
 
 void MyApp::createShaderPrograms() {
-	Shaders = new mgl::ShaderProgram();
-	Shaders->addShader(GL_VERTEX_SHADER, "cube-vs.glsl");
-	Shaders->addShader(GL_FRAGMENT_SHADER, "cube-fs.glsl");
+	ShaderCel = new mgl::ShaderProgram();
+	ShaderCel->addShader(GL_VERTEX_SHADER, "cube-vs.glsl");
+	ShaderCel->addShader(GL_FRAGMENT_SHADER, "cube-fs.glsl");
 
-	Shaders->addAttribute(mgl::POSITION_ATTRIBUTE, mgl::Mesh::POSITION);
+	ShaderCel->addAttribute(mgl::POSITION_ATTRIBUTE, mgl::Mesh::POSITION);
 	if (meshes[0].Mesh->hasNormals()) {
-		Shaders->addAttribute(mgl::NORMAL_ATTRIBUTE, mgl::Mesh::NORMAL);
+		ShaderCel->addAttribute(mgl::NORMAL_ATTRIBUTE, mgl::Mesh::NORMAL);
 	}
 	if (meshes[0].Mesh->hasTexcoords()) {
-		Shaders->addAttribute(mgl::TEXCOORD_ATTRIBUTE, mgl::Mesh::TEXCOORD);
+		ShaderCel->addAttribute(mgl::TEXCOORD_ATTRIBUTE, mgl::Mesh::TEXCOORD);
 	}
 	if (meshes[0].Mesh->hasTangentsAndBitangents()) {
-		Shaders->addAttribute(mgl::TANGENT_ATTRIBUTE, mgl::Mesh::TANGENT);
+		ShaderCel->addAttribute(mgl::TANGENT_ATTRIBUTE, mgl::Mesh::TANGENT);
 	}
 
-	Shaders->addUniform(mgl::MODEL_MATRIX);
-	Shaders->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
-	Shaders->addUniform("Color");
-	Shaders->create();
+	ShaderCel->addUniform(mgl::MODEL_MATRIX);
+	ShaderCel->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
+	ShaderCel->addUniform("Color");
+	ShaderCel->create();
 
-	ModelMatrixId = Shaders->Uniforms[mgl::MODEL_MATRIX].index;
+	ModelMatrixId = ShaderCel->Uniforms[mgl::MODEL_MATRIX].index;
+	//----------------------------------------------------------------------------
+	ShaderPhong = new mgl::ShaderProgram();
+	ShaderPhong->addShader(GL_VERTEX_SHADER, "cel-vs.glsl");
+	ShaderPhong->addShader(GL_FRAGMENT_SHADER, "cel-fs.glsl");
+
+	ShaderPhong->addAttribute(mgl::POSITION_ATTRIBUTE, mgl::Mesh::POSITION);
+	if (meshes[0].Mesh->hasNormals()) {
+		ShaderPhong->addAttribute(mgl::NORMAL_ATTRIBUTE, mgl::Mesh::NORMAL);
+	}
+	if (meshes[0].Mesh->hasTexcoords()) {
+		ShaderPhong->addAttribute(mgl::TEXCOORD_ATTRIBUTE, mgl::Mesh::TEXCOORD);
+	}
+	if (meshes[0].Mesh->hasTangentsAndBitangents()) {
+		ShaderPhong->addAttribute(mgl::TANGENT_ATTRIBUTE, mgl::Mesh::TANGENT);
+	}
+
+	ShaderPhong->addUniform(mgl::MODEL_MATRIX);
+	ShaderPhong->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
+	ShaderPhong->addUniform("Color");
+	ShaderPhong->create();
+
+	ModelMatrixId = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
 }
 
 ///////////////////////////////////////////////////////////////////////// CAMERA
 
 void MyApp::updateProjMatrices(float ratio) {
-	ProjectionMatrix1 = glm::ortho(-2.f * ratio, 2.f * ratio, -2.0f * ratio, 2.0f* ratio, 1.0f, 15.0f);
-	ProjectionMatrix2 = glm::perspective(glm::radians(30.0f), ratio, 1.0f, 30.0f);
+	ProjectionMatrixOrtho = glm::ortho(-2.f * ratio, 2.f * ratio, -2.0f * ratio, 2.0f* ratio, 1.0f, 15.0f);
+	ProjectionMatrixPerspective = glm::perspective(glm::radians(30.0f), ratio, 1.0f, 30.0f);
 }
 
 void MyApp::createCamera() {
@@ -233,7 +264,7 @@ void MyApp::createCamera() {
 	Camera->setViewMatrix(glm::lookAt({ initial_postion_c1.x,initial_postion_c1.y,initial_postion_c1.z },
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f)));
-	Camera->setProjectionMatrix(ProjectionMatrix2);
+	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 
 }
 
@@ -297,7 +328,6 @@ void MyApp::updateTransformationMatrices() {
 void MyApp::update(GLFWwindow* win) {
 	//INPUT
 	processMouseMovement(win);
-	updateTransformationMatrices();
 
 	//CAMERAS
 	if (camera1_on) {
@@ -314,9 +344,9 @@ void MyApp::update(GLFWwindow* win) {
 
 		Camera->setViewMatrix(ChangingViewMatrix * glm::scale(glm::vec3(1.0f * zoom)));
 		if (projection_camera1)
-			Camera->setProjectionMatrix(ProjectionMatrix2);
+			Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 		else
-			Camera->setProjectionMatrix(ProjectionMatrix1);
+			Camera->setProjectionMatrix(ProjectionMatrixOrtho);
 
 	}
 	else {
@@ -333,24 +363,37 @@ void MyApp::update(GLFWwindow* win) {
 
 		Camera2->setViewMatrix(ChangingViewMatrix * glm::scale(glm::vec3(1.0f * zoom2)));
 		if (projection_camera2)
-			Camera2->setProjectionMatrix(ProjectionMatrix2);
+			Camera2->setProjectionMatrix(ProjectionMatrixPerspective);
 		else
-			Camera2->setProjectionMatrix(ProjectionMatrix1);
+			Camera2->setProjectionMatrix(ProjectionMatrixOrtho);
 	}
 }
 
 
 void MyApp::render() {
-	Shaders->bind();
+	ShaderCel->bind();
 	
-	for (int i = 0; i < meshes.size(); i++) {
+	//for (int i = 0; i < meshes.size(); i++) {
+	for (int i = 0; i < 1; i++) {
 
-		glUniform3f(Shaders->Uniforms["Color"].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
+		glUniform3f(ShaderCel->Uniforms["Color"].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 
 		glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 		meshes[i].Mesh->draw();
 	}
-	Shaders->unbind();
+	ShaderCel->unbind();
+	//-------------------------------------------------------------------
+	ShaderPhong->bind();
+	
+	//for (int i = 0; i < meshes.size(); i++) {
+	for (int i = 1; i < meshes.size(); i++) {
+
+		glUniform3f(ShaderCel->Uniforms["Color"].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
+
+		glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
+		meshes[i].Mesh->draw();
+	}
+	ShaderPhong->unbind();
 }
 
 
@@ -510,12 +553,14 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 		if (parametric_movement >= max_param) {
 			parametric_movement = max_param;
 		}
+		//updateTransformationMatrices();
 	}
 	if (key == GLFW_KEY_RIGHT && action == GLFW_REPEAT) {
 		parametric_movement -= param_sensitivity;
 		if (parametric_movement <= min_param) {
 			parametric_movement = min_param;
 		}
+		//updateTransformationMatrices();
 	}
 	
 }

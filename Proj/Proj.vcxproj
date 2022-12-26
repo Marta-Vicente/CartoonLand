@@ -19,6 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <None Include="cel-fs.glsl" />
+    <None Include="cel-vs.glsl" />
     <None Include="cube-fs.glsl" />
     <None Include="cube-vs.glsl" />
   </ItemGroup>

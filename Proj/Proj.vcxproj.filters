@@ -21,6 +21,12 @@
     <None Include="cube-fs.glsl">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="cel-vs.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="cel-fs.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\mgl\mglError.cpp">
