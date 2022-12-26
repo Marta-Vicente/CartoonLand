@@ -150,7 +150,6 @@ void MyApp::createMeshes() {
 
 	std::vector<std::string> meshesNames;
 	std::vector<glm::vec3> colors;
-	std::vector<glm::mat4> transformations;
 
 	meshesNames.push_back("blue_triangle.obj");
 	colors.push_back({ 0.1f, 0.9f, 0.9f });
