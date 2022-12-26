@@ -184,8 +184,8 @@ void MyApp::createMeshes() {
 	//--------------------------------------------------------------------------
 	
 	meshesNames.push_back("pantheon.obj");
-	colors.push_back({ 0.9f, 0.9f, 0.1f });
-	transformations.push_back(glm::translate(glm::vec3(0.f, 5.f, 0.f)));
+	colors.push_back({ 0.1f, 0.1f, 0.1f });
+	transformations.push_back(glm::scale(glm::vec3(1.01f, 1.01f, 1.01f)));
 	//--------------------------------------------------------------------------
 
 	for (int i = 0; i < meshesNames.size(); i++) {
@@ -372,7 +372,7 @@ void MyApp::update(GLFWwindow* win) {
 
 void MyApp::render() {
 	ShaderCel->bind();
-	
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	//for (int i = 0; i < meshes.size(); i++) {
 	for (int i = 0; i < 1; i++) {
 
@@ -384,7 +384,8 @@ void MyApp::render() {
 	ShaderCel->unbind();
 	//-------------------------------------------------------------------
 	ShaderPhong->bind();
-	
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glCullFace(GL_FRONT);
 	//for (int i = 0; i < meshes.size(); i++) {
 	for (int i = 1; i < meshes.size(); i++) {
 
@@ -393,7 +394,9 @@ void MyApp::render() {
 		glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 		meshes[i].Mesh->draw();
 	}
+	glCullFace(GL_BACK);
 	ShaderPhong->unbind();
+
 }
 
 

@@ -20,7 +20,7 @@ void main(void)
 {
 	exPosition = inPosition;
 	exTexcoord = inTexcoord;
-	exNormal = inNormal + vec3(1.0);
+	exNormal = inNormal;
 
 	vec4 MCPosition = vec4(inPosition, 1.0);
 	gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * MCPosition;
