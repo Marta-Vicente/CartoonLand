@@ -31,7 +31,9 @@
 
 ////////////////////////////////////////////////////////////////////////// WINDOW
 int windowWidth, windowHeight;
+////////////////////////////////////////////////////////////////////////// WINDOW
 int snapNum = 1;
+#define TRANSF_MESHES 7
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
@@ -128,12 +130,12 @@ private:
 	void createCamera();
 	//update
 	void update(GLFWwindow* win);
+	void updateTransformationMatrices();
 	void processMouseMovement(GLFWwindow* win);
-	void processKeyInput(GLFWwindow* win);
 	//render
 	void render();
 	//window size
-	void updateMatrices(float ratio);
+	void updateProjMatrices(float ratio);
 	//
 	void snapshot(GLFWwindow* win, int width, int height);
 };
@@ -150,70 +152,38 @@ void MyApp::createMeshes() {
 	std::vector<glm::vec3> colors;
 	std::vector<glm::mat4> transformations;
 
-	meshesNames.push_back("blue_triangle.obj");
-	meshesNames.push_back("pink_triangle.obj");
-	meshesNames.push_back("orange_triangle.obj");
-	meshesNames.push_back("paralelogram.obj");
-	meshesNames.push_back("purple_triangle.obj");
-	meshesNames.push_back("red_triangle.obj");
-	meshesNames.push_back("green_cube.obj");
-
-	colors.push_back({ 0.1f, 0.9f, 0.9f });
-	colors.push_back({ 0.9f, 0.45f, 0.5f });
-	colors.push_back({ 0.9f, 0.5f, 0.1f });
-	colors.push_back({ 0.9f, 0.7f, 0.1f });
-	colors.push_back({ 0.7f, 0.1f, 0.9f });
-	colors.push_back({ 0.9f, 0.1f, 0.1f });
-	colors.push_back({ 0.1f, 0.9f, 0.1f });
-
 	glm::mat4 M;
 	glm::mat4 rotationBetweenPlanes = glm::rotate(glm::radians(parametric_movement * 90.f), glm::vec3(1.f, 0.f, 0.f));
 
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3((-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), (0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f));
-	transformations.push_back(M);
+	meshesNames.push_back("blue_triangle.obj");
+	colors.push_back({ 0.1f, 0.9f, 0.9f });
+	//--------------------------------------------------------------------------
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3(0, (-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * 45.f), glm::vec3(0.f, 1.f, 0.f));
-	transformations.push_back(M);
+	meshesNames.push_back("pink_triangle.obj");
+	colors.push_back({ 0.9f, 0.45f, 0.5f });
+	//--------------------------------------------------------------------------
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3(-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
-	transformations.push_back(M);
+	meshesNames.push_back("orange_triangle.obj");
+	colors.push_back({ 0.9f, 0.5f, 0.1f });
+	//--------------------------------------------------------------------------
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3(-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, -0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f))
-		* glm::rotate(glm::radians(parametric_movement * 180.f), glm::vec3(1.f, 0.f, 0.f));
-	transformations.push_back(M);
+	meshesNames.push_back("paralelogram.obj");
+	colors.push_back({ 0.9f, 0.7f, 0.1f });
+	//--------------------------------------------------------------------------
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3((0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), (-0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f))
-		* glm::translate(glm::vec3(0.f, 0.f, -0.45f * parametric_movement));
-	transformations.push_back(M);
+	meshesNames.push_back("purple_triangle.obj");
+	colors.push_back({ 0.7f, 0.1f, 0.9f });
+	//--------------------------------------------------------------------------
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3((0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), (0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f))
-		* glm::translate(glm::vec3(0.45f * parametric_movement, 0.f, 0.f));
-	transformations.push_back(M);
+	meshesNames.push_back("red_triangle.obj");
+	colors.push_back({ 0.9f, 0.1f, 0.1f });
+	//--------------------------------------------------------------------------
 
-	M = ChangingModelMatrix
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
-	transformations.push_back(M);
-
+	meshesNames.push_back("green_cube.obj");
+	//meshesNames.push_back("pantheon.obj");
+	colors.push_back({ 0.1f, 0.9f, 0.1f });
+	//--------------------------------------------------------------------------
 
 	for (int i = 0; i < meshesNames.size(); i++) {
 		Mesh_obj meshSingle;
@@ -221,9 +191,9 @@ void MyApp::createMeshes() {
 		meshSingle.Mesh->joinIdenticalVertices();
 		meshSingle.Mesh->create(mesh_dir + meshesNames[i]);
 		meshSingle.color = colors[i];
-		meshSingle.transformation = transformations[i];
 		meshes.push_back(meshSingle);
 	}
+	updateTransformationMatrices();
 
 }
 
@@ -256,7 +226,7 @@ void MyApp::createShaderPrograms() {
 
 ///////////////////////////////////////////////////////////////////////// CAMERA
 
-void MyApp::updateMatrices(float ratio) {
+void MyApp::updateProjMatrices(float ratio) {
 	ProjectionMatrix1 = glm::ortho(-2.f * ratio, 2.f * ratio, -2.0f * ratio, 2.0f* ratio, 1.0f, 15.0f);
 	ProjectionMatrix2 = glm::perspective(glm::radians(30.0f), ratio, 1.0f, 30.0f);
 }
@@ -274,10 +244,65 @@ void MyApp::createCamera() {
 
 /////////////////////////////////////////////////////////////////////////// DRAW
 
+void MyApp::updateTransformationMatrices() {
+	std::vector<glm::mat4> tTemp;
+
+	glm::mat4 M;
+	glm::mat4 rotationBetweenPlanes = glm::rotate(glm::radians(parametric_movement * 90.f), glm::vec3(1.f, 0.f, 0.f));
+
+	M = ChangingModelMatrix
+		* glm::translate(glm::vec3((-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), (0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
+		* rotationBetweenPlanes
+		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f));
+	tTemp.push_back(M);
+
+	M = ChangingModelMatrix
+		* glm::translate(glm::vec3(0, (-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
+		* rotationBetweenPlanes
+		* glm::rotate(glm::radians(parametric_movement * 45.f), glm::vec3(0.f, 1.f, 0.f));
+	tTemp.push_back(M);
+
+	M = ChangingModelMatrix
+		* glm::translate(glm::vec3(-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0))
+		* rotationBetweenPlanes
+		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
+	tTemp.push_back(M);
+
+	M = ChangingModelMatrix
+		* glm::translate(glm::vec3(-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, -0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0))
+		* rotationBetweenPlanes
+		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f))
+		* glm::rotate(glm::radians(parametric_movement * 180.f), glm::vec3(1.f, 0.f, 0.f));
+	tTemp.push_back(M);
+
+	M = ChangingModelMatrix
+		* glm::translate(glm::vec3((0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), (-0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
+		* rotationBetweenPlanes
+		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f))
+		* glm::translate(glm::vec3(0.f, 0.f, -0.45f * parametric_movement));
+	tTemp.push_back(M);
+
+	M = ChangingModelMatrix
+		* glm::translate(glm::vec3((0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), (0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
+		* rotationBetweenPlanes
+		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f))
+		* glm::translate(glm::vec3(0.45f * parametric_movement, 0.f, 0.f));
+	tTemp.push_back(M);
+
+	M = ChangingModelMatrix
+		* rotationBetweenPlanes
+		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
+	tTemp.push_back(M);
+
+	for (int i = 0; i < TRANSF_MESHES; i++) {
+		meshes[i].transformation = tTemp[i];
+	}
+}
+
 void MyApp::update(GLFWwindow* win) {
 	//INPUT
 	processMouseMovement(win);
-	//processKeyInput(win);
+	updateTransformationMatrices();
 
 	//CAMERAS
 	if (camera1_on) {
@@ -322,8 +347,6 @@ void MyApp::update(GLFWwindow* win) {
 
 void MyApp::render() {
 	Shaders->bind();
-	glm::mat4 M;
-	glm::mat4 rotationBetweenPlanes = glm::rotate(glm::radians(parametric_movement*90.f), glm::vec3(1.f, 0.f, 0.f));
 	
 	for (int i = 0; i < meshes.size(); i++) {
 
@@ -335,55 +358,6 @@ void MyApp::render() {
 	Shaders->unbind();
 }
 
-
-void MyApp::processKeyInput(GLFWwindow * win) {
-
-	int state = glfwGetKey(win, GLFW_KEY_P);
-	if (state == GLFW_PRESS && !OLD_P_CLICKED)
-	{
-		if (camera1_on)
-			projection_camera1 = !projection_camera1;
-		else
-			projection_camera2 = !projection_camera2;
-	}
-	if (state == GLFW_PRESS)
-		OLD_P_CLICKED = true;
-	else
-		OLD_P_CLICKED = false;
-
-	int state_camera = glfwGetKey(win, GLFW_KEY_C);
-	if (state_camera == GLFW_PRESS && !OLD_C_CLICKED)
-	{
-		camera1_on = !camera1_on;
-		if (camera1_on) {
-			Camera->Update(UBO_BP);
-		}
-		else {
-			Camera2->Update(UBO_BP);
-		}
-	}
-	if (state_camera == GLFW_PRESS)
-		OLD_C_CLICKED = true;
-	else
-		OLD_C_CLICKED = false;
-
-	int state_left = glfwGetKey(win, GLFW_KEY_LEFT);
-	int state_right = glfwGetKey(win, GLFW_KEY_RIGHT);
-
-	if (state_left == GLFW_PRESS) {
-		parametric_movement += param_sensitivity;
-	}
-	if (state_right == GLFW_PRESS) {
-		parametric_movement -= param_sensitivity;
-	}
-	if (parametric_movement >= max_param) {
-		parametric_movement = max_param;
-	}
-	if (parametric_movement <= min_param) {
-		parametric_movement = min_param;
-	}
-
-}
 
 void MyApp::scrollCallback(GLFWwindow * window, double xoffset, double yoffset) {
 
@@ -484,8 +458,8 @@ void MyApp::initCallback(GLFWwindow * win) {
 	createCamera();
 
 	//SOUND
-	SoundEngine->play2D("../assets/surrender.mp3", true);
-	SoundEngine->setSoundVolume(soundVolume);
+	/*SoundEngine->play2D("../assets/surrender.mp3", true);
+	SoundEngine->setSoundVolume(soundVolume);*/
 
 }
 
@@ -501,7 +475,7 @@ void MyApp::windowSizeCallback(GLFWwindow * win, int winx, int winy) {
 	windowWidth = winx;
 	windowHeight = winy;
 
-	updateMatrices(ratio);
+	updateProjMatrices(ratio);
 
 }
 
@@ -521,6 +495,34 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 		snapshot(window, windowWidth, windowHeight);
 	}
+	if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+		if (camera1_on)
+			projection_camera1 = !projection_camera1;
+		else
+			projection_camera2 = !projection_camera2;
+	}
+	if (key == GLFW_KEY_C && action == GLFW_PRESS) {
+		camera1_on = !camera1_on;
+		if (camera1_on) {
+			Camera->Update(UBO_BP);
+		}
+		else {
+			Camera2->Update(UBO_BP);
+		}
+	}
+	if (key == GLFW_KEY_LEFT && action == GLFW_REPEAT) {
+		parametric_movement += param_sensitivity;
+		if (parametric_movement >= max_param) {
+			parametric_movement = max_param;
+		}
+	}
+	if (key == GLFW_KEY_RIGHT && action == GLFW_REPEAT) {
+		parametric_movement -= param_sensitivity;
+		if (parametric_movement <= min_param) {
+			parametric_movement = min_param;
+		}
+	}
+	
 }
 
 /////////////////////////////////////////////////////////////////////////// EXTRA
