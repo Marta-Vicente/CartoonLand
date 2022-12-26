@@ -152,10 +152,6 @@ void MyApp::createMeshes() {
 	std::vector<glm::vec3> colors;
 	std::vector<glm::mat4> transformations;
 
-	glm::mat4 M;
-	glm::mat4 rotationBetweenPlanes = glm::rotate(glm::radians(parametric_movement * 90.f), glm::vec3(1.f, 0.f, 0.f));
-
-
 	meshesNames.push_back("blue_triangle.obj");
 	colors.push_back({ 0.1f, 0.9f, 0.9f });
 	//--------------------------------------------------------------------------
