@@ -36,7 +36,6 @@ int windowWidth, windowHeight;
 ////////////////////////////////////////////////////////////////////////// VARIABLES
 
 int snapNum = 1;
-#define TRANSF_MESHES 7
 
 ////////////////////////////////////////////////////////////////////////// SOUND
 
@@ -48,12 +47,17 @@ const float soundVolume = 0.3f;
 glm::mat4 ModelMatrix(1.0f);
 const glm::mat4 ChangingModelMatrix = ModelMatrix;
 
+enum ShadingMode {
+	cel, phong, silhouette
+};
+
 struct Mesh_obj
 {
 	mgl::Mesh* Mesh = nullptr;
 	//mgl::ShaderProgram* Shaders = nullptr;
 	glm::vec3 color;
 	glm::mat4 transformation;
+	ShadingMode shadingMode;
 } ;
 
 
@@ -152,41 +156,21 @@ void MyApp::createMeshes() {
 	std::vector<std::string> meshesNames;
 	std::vector<glm::vec3> colors;
 	std::vector<glm::mat4> transformations;
+	std::vector<ShadingMode> sm;
 
-	/*meshesNames.push_back("blue_triangle.obj");
-	colors.push_back({ 0.1f, 0.9f, 0.9f });
-	//--------------------------------------------------------------------------
 
-	meshesNames.push_back("pink_triangle.obj");
-	colors.push_back({ 0.9f, 0.45f, 0.5f });
-	//--------------------------------------------------------------------------
-
-	meshesNames.push_back("orange_triangle.obj");
-	colors.push_back({ 0.9f, 0.5f, 0.1f });
-	//--------------------------------------------------------------------------
-
-	meshesNames.push_back("paralelogram.obj");
-	colors.push_back({ 0.9f, 0.7f, 0.1f });
-	//--------------------------------------------------------------------------
-
-	meshesNames.push_back("purple_triangle.obj");
-	colors.push_back({ 0.7f, 0.1f, 0.9f });
-	//--------------------------------------------------------------------------
-
-	meshesNames.push_back("red_triangle.obj");
-	colors.push_back({ 0.9f, 0.1f, 0.1f });*/
-	//--------------------------------------------------------------------------
-
-	//meshesNames.push_back("green_cube.obj");
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.9f, 0.5f, 0.1f });
-	transformations.push_back(glm::mat4(1.0));
+	transformations.push_back(ModelMatrix);
+	sm.push_back(cel);
 	//--------------------------------------------------------------------------
 	
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.1f, 0.1f, 0.1f });
 	transformations.push_back(glm::scale(glm::vec3(1.01f, 1.01f, 1.01f)));
+	sm.push_back(silhouette);
 	//--------------------------------------------------------------------------
+
 
 	for (int i = 0; i < meshesNames.size(); i++) {
 		Mesh_obj meshSingle;
@@ -195,6 +179,7 @@ void MyApp::createMeshes() {
 		meshSingle.Mesh->create(mesh_dir + meshesNames[i]);
 		meshSingle.color = colors[i];
 		meshSingle.transformation = transformations[i];
+		meshSingle.shadingMode = sm[i];
 		meshes.push_back(meshSingle);
 	}
 	//updateTransformationMatrices();
@@ -320,9 +305,9 @@ void MyApp::updateTransformationMatrices() {
 		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
 	tTemp.push_back(M);
 
-	for (int i = 0; i < TRANSF_MESHES; i++) {
+	/*for (int i = 0; i < TRANSF_MESHES; i++) {
 		meshes[i].transformation = tTemp[i];
-	}
+	}*/
 }
 
 void MyApp::update(GLFWwindow* win) {
@@ -371,7 +356,7 @@ void MyApp::update(GLFWwindow* win) {
 
 
 void MyApp::render() {
-	ShaderCel->bind();
+	/*ShaderCel->bind();
 	//for (int i = 0; i < meshes.size(); i++) {
 	for (int i = 0; i < 1; i++) {
 
@@ -393,7 +378,32 @@ void MyApp::render() {
 		meshes[i].Mesh->draw();
 	}
 	glCullFace(GL_BACK);
-	ShaderPhong->unbind();
+	ShaderPhong->unbind();*/
+
+	for (int i = 0; i < meshes.size(); i++) {
+		if (meshes[i].shadingMode == cel)
+			ShaderCel->bind();
+		else if (meshes[i].shadingMode == silhouette) {
+			ShaderPhong->bind();
+			glCullFace(GL_FRONT);
+		}
+		else if (meshes[i].shadingMode == phong)
+			ShaderPhong->bind();
+
+		glUniform3f(ShaderCel->Uniforms["Color"].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
+
+		glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
+		meshes[i].Mesh->draw();
+
+		if (meshes[i].shadingMode == cel)
+			ShaderCel->unbind();
+		else if (meshes[i].shadingMode == silhouette) {
+			ShaderPhong->unbind();
+			glCullFace(GL_BACK);
+		}
+		else if (meshes[i].shadingMode == phong)
+			ShaderPhong->unbind();
+	}
 
 }
 
