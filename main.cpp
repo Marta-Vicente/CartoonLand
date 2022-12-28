@@ -58,7 +58,12 @@ struct Mesh_obj
 	glm::vec3 color;
 	glm::mat4 transformation;
 	ShadingMode shadingMode;
-} ;
+};
+
+struct Light {
+	glm::vec3 pos;
+	glm::vec3 direction;
+};
 
 
 class MyApp : public mgl::App {
@@ -107,10 +112,12 @@ private:
 	mgl::ShaderProgram* ShaderCel = nullptr;
 	mgl::ShaderProgram* ShaderPhong = nullptr;
 
+	Light light;
+
 	//Camera
 	mgl::Camera* Camera = nullptr;
 	mgl::Camera* Camera2 = nullptr;
-	GLint ModelMatrixId;
+	GLint ModelMatrixIdCel, ModelMatrixIdPhong;
 
 	//CAMERA TYPES
 	// Orthographic LeftRight(-2,2) BottomTop(-2,2) NearFar(1,10)
@@ -133,6 +140,7 @@ private:
 	void createMeshes();
 	void createShaderPrograms();
 	void createCamera();
+	void createLight();
 	//update
 	void update(GLFWwindow* win);
 	void updateTransformationMatrices();
@@ -191,8 +199,8 @@ void MyApp::createMeshes() {
 
 void MyApp::createShaderPrograms() {
 	ShaderCel = new mgl::ShaderProgram();
-	ShaderCel->addShader(GL_VERTEX_SHADER, "cube-vs.glsl");
-	ShaderCel->addShader(GL_FRAGMENT_SHADER, "cube-fs.glsl");
+	ShaderCel->addShader(GL_VERTEX_SHADER, "cel-vs.glsl");
+	ShaderCel->addShader(GL_FRAGMENT_SHADER, "cel-fs.glsl");
 
 	ShaderCel->addAttribute(mgl::POSITION_ATTRIBUTE, mgl::Mesh::POSITION);
 	if (meshes[0].Mesh->hasNormals()) {
@@ -207,14 +215,15 @@ void MyApp::createShaderPrograms() {
 
 	ShaderCel->addUniform(mgl::MODEL_MATRIX);
 	ShaderCel->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
-	ShaderCel->addUniform("Color");
+	ShaderCel->addUniformBlock("Light", UBO_BP);
+	ShaderCel->addUniform(mgl::COLOR_ATTRIBUTE);
 	ShaderCel->create();
 
-	ModelMatrixId = ShaderCel->Uniforms[mgl::MODEL_MATRIX].index;
+	ModelMatrixIdCel = ShaderCel->Uniforms[mgl::MODEL_MATRIX].index;
 	//----------------------------------------------------------------------------
 	ShaderPhong = new mgl::ShaderProgram();
-	ShaderPhong->addShader(GL_VERTEX_SHADER, "cel-vs.glsl");
-	ShaderPhong->addShader(GL_FRAGMENT_SHADER, "cel-fs.glsl");
+	ShaderPhong->addShader(GL_VERTEX_SHADER, "cube-vs.glsl");
+	ShaderPhong->addShader(GL_FRAGMENT_SHADER, "cube-fs.glsl");
 
 	ShaderPhong->addAttribute(mgl::POSITION_ATTRIBUTE, mgl::Mesh::POSITION);
 	if (meshes[0].Mesh->hasNormals()) {
@@ -229,10 +238,11 @@ void MyApp::createShaderPrograms() {
 
 	ShaderPhong->addUniform(mgl::MODEL_MATRIX);
 	ShaderPhong->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
-	ShaderPhong->addUniform("Color");
+	ShaderCel->addUniformBlock("Light", UBO_BP);
+	ShaderPhong->addUniform(mgl::COLOR_ATTRIBUTE);
 	ShaderPhong->create();
 
-	ModelMatrixId = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
+	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
 }
 
 ///////////////////////////////////////////////////////////////////////// CAMERA
@@ -251,6 +261,11 @@ void MyApp::createCamera() {
 		glm::vec3(0.0f, 1.0f, 0.0f)));
 	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 
+}
+
+void MyApp::createLight() {
+	light.pos = {30.f, 5.f, 0.f};
+	light.direction = { -1.f, 0.f, 0.f };
 }
 
 /////////////////////////////////////////////////////////////////////////// DRAW
@@ -356,43 +371,35 @@ void MyApp::update(GLFWwindow* win) {
 
 
 void MyApp::render() {
+
 	/*ShaderCel->bind();
-	//for (int i = 0; i < meshes.size(); i++) {
-	for (int i = 0; i < 1; i++) {
-
-		glUniform3f(ShaderCel->Uniforms["Color"].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
-
-		glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
+	for (int i = 0; i < meshes.size(); i++) {
+		glUniform3f(ShaderCel->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
+		glUniformMatrix4fv(ModelMatrixIdCel, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 		meshes[i].Mesh->draw();
-	}
-	ShaderCel->unbind();
-	//-------------------------------------------------------------------
-	ShaderPhong->bind();
-	glCullFace(GL_FRONT);
-	//for (int i = 0; i < meshes.size(); i++) {
-	for (int i = 1; i < meshes.size(); i++) {
 
-		glUniform3f(ShaderCel->Uniforms["Color"].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
-
-		glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
-		meshes[i].Mesh->draw();
 	}
-	glCullFace(GL_BACK);
-	ShaderPhong->unbind();*/
+	ShaderCel->unbind();*/
+
 
 	for (int i = 0; i < meshes.size(); i++) {
-		if (meshes[i].shadingMode == cel)
+		if (meshes[i].shadingMode == cel) {
 			ShaderCel->bind();
+			glUniform3f(ShaderCel->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
+			glUniformMatrix4fv(ModelMatrixIdCel, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
+		}
 		else if (meshes[i].shadingMode == silhouette) {
 			ShaderPhong->bind();
 			glCullFace(GL_FRONT);
+			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
+			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 		}
-		else if (meshes[i].shadingMode == phong)
+		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
+			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
+			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
+		}
 
-		glUniform3f(ShaderCel->Uniforms["Color"].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
-
-		glUniformMatrix4fv(ModelMatrixId, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 		meshes[i].Mesh->draw();
 
 		if (meshes[i].shadingMode == cel)

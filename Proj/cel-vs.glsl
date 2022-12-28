@@ -3,7 +3,7 @@
 in vec3 inPosition;
 in vec2 inTexcoord;
 in vec3 inNormal;
-uniform vec3 Color;
+uniform vec3 inColor;
 
 out vec3 exPosition;
 out vec2 exTexcoord;
@@ -14,6 +14,11 @@ uniform mat4 ModelMatrix;
 uniform Camera {
    mat4 ViewMatrix;
    mat4 ProjectionMatrix;
+};
+
+uniform Light {
+   vec3 pos;
+   vec3 dir;
 };
 
 void main(void)
