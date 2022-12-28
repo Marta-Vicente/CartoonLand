@@ -3,18 +3,21 @@
 in vec3 inPosition;
 in vec2 inTexcoord;
 in vec3 inNormal;
-uniform vec3 inColor;
 
 out vec3 exPosition;
 out vec2 exTexcoord;
 out vec3 exNormal;
+out vec3 exColor;
+out vec3 FragPos;
 
 uniform mat4 ModelMatrix;
+uniform vec3 inColor;
 
 uniform Camera {
    mat4 ViewMatrix;
    mat4 ProjectionMatrix;
 };
+
 
 void main(void)
 {
@@ -23,5 +26,6 @@ void main(void)
 	exNormal = inNormal;
 
 	vec4 MCPosition = vec4(inPosition, 1.0);
+	FragPos = vec3(ModelMatrix * MCPosition);
 	gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * MCPosition;
 }

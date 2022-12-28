@@ -5,12 +5,9 @@ in vec2 exTexcoord;
 in vec3 exNormal;
 uniform vec3 inColor;
 
-out vec4 FragmentColor;
+uniform vec3 Light;
 
-uniform Light {
-   vec3 pos;
-   vec3 dir;
-};
+out vec4 FragmentColor;
 
 void main(void)
 {

@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="cube-vs.glsl">
+    <None Include="phong-vs.glsl">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="cube-fs.glsl">
+    <None Include="phong-fs.glsl">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="cel-vs.glsl">

@@ -60,11 +60,6 @@ struct Mesh_obj
 	ShadingMode shadingMode;
 };
 
-struct Light {
-	glm::vec3 pos;
-	glm::vec3 direction;
-};
-
 
 class MyApp : public mgl::App {
 
@@ -112,7 +107,7 @@ private:
 	mgl::ShaderProgram* ShaderCel = nullptr;
 	mgl::ShaderProgram* ShaderPhong = nullptr;
 
-	Light light;
+	glm::vec3 light;
 
 	//Camera
 	mgl::Camera* Camera = nullptr;
@@ -170,7 +165,7 @@ void MyApp::createMeshes() {
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.9f, 0.5f, 0.1f });
 	transformations.push_back(ModelMatrix);
-	sm.push_back(cel);
+	sm.push_back(phong);
 	//--------------------------------------------------------------------------
 	
 	meshesNames.push_back("pantheon.obj");
@@ -215,15 +210,15 @@ void MyApp::createShaderPrograms() {
 
 	ShaderCel->addUniform(mgl::MODEL_MATRIX);
 	ShaderCel->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
-	ShaderCel->addUniformBlock("Light", UBO_BP);
 	ShaderCel->addUniform(mgl::COLOR_ATTRIBUTE);
+	ShaderCel->addUniform("Light");
 	ShaderCel->create();
 
 	ModelMatrixIdCel = ShaderCel->Uniforms[mgl::MODEL_MATRIX].index;
 	//----------------------------------------------------------------------------
 	ShaderPhong = new mgl::ShaderProgram();
-	ShaderPhong->addShader(GL_VERTEX_SHADER, "cube-vs.glsl");
-	ShaderPhong->addShader(GL_FRAGMENT_SHADER, "cube-fs.glsl");
+	ShaderPhong->addShader(GL_VERTEX_SHADER, "phong-vs.glsl");
+	ShaderPhong->addShader(GL_FRAGMENT_SHADER, "phong-fs.glsl");
 
 	ShaderPhong->addAttribute(mgl::POSITION_ATTRIBUTE, mgl::Mesh::POSITION);
 	if (meshes[0].Mesh->hasNormals()) {
@@ -238,8 +233,8 @@ void MyApp::createShaderPrograms() {
 
 	ShaderPhong->addUniform(mgl::MODEL_MATRIX);
 	ShaderPhong->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
-	ShaderCel->addUniformBlock("Light", UBO_BP);
 	ShaderPhong->addUniform(mgl::COLOR_ATTRIBUTE);
+	ShaderPhong->addUniform("Light");
 	ShaderPhong->create();
 
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
@@ -264,8 +259,15 @@ void MyApp::createCamera() {
 }
 
 void MyApp::createLight() {
-	light.pos = {30.f, 5.f, 0.f};
-	light.direction = { -1.f, 0.f, 0.f };
+	light = {30.f, 40.f, 30.f};
+	/*light.direction = {-1.f, 0.f, 0.f};
+
+	GLuint UboId;
+	glGenBuffers(1, &UboId);
+	glBindBuffer(GL_UNIFORM_BUFFER, UboId);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec3) * 2, 0, GL_STREAM_DRAW);
+	glBindBufferBase(GL_UNIFORM_BUFFER, LIGHT_BP, UboId);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);*/
 }
 
 /////////////////////////////////////////////////////////////////////////// DRAW
@@ -381,23 +383,25 @@ void MyApp::render() {
 	}
 	ShaderCel->unbind();*/
 
-
 	for (int i = 0; i < meshes.size(); i++) {
 		if (meshes[i].shadingMode == cel) {
 			ShaderCel->bind();
 			glUniform3f(ShaderCel->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdCel, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
+			glUniform3f(ShaderCel->Uniforms["Light"].index, light.x, light.y, light.z);
 		}
 		else if (meshes[i].shadingMode == silhouette) {
 			ShaderPhong->bind();
 			glCullFace(GL_FRONT);
 			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
+			glUniform3f(ShaderPhong->Uniforms["Light"].index, light.x, light.y, light.z);
 		}
 		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
 			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
+			glUniform3f(ShaderPhong->Uniforms["Light"].index, light.x, light.y, light.z);
 		}
 
 		meshes[i].Mesh->draw();
@@ -512,6 +516,7 @@ void MyApp::initCallback(GLFWwindow * win) {
 	createMeshes();
 	createShaderPrograms(); // after mesh;
 	createCamera();
+	createLight();
 
 	//SOUND
 	/*SoundEngine->play2D("../assets/surrender.mp3", true);
