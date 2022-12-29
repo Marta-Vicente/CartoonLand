@@ -9,25 +9,38 @@ out vec4 FragmentColor;
 
 uniform vec3 inColor;
 uniform vec3 Light;
+uniform vec3 camPos;
+
+vec3 ambientLight(float ambientStrenght, vec3 lightColor){
+	return ambientStrenght * lightColor;
+}
+
+vec3 diffuseLight(vec3 lightDir, vec3 norm, vec3 lightColor){
+	float intensity = max(dot(norm, lightDir), 0.0);
+	return intensity * lightColor;
+}
+
+vec3 specularLight(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor){
+	vec3 camDir =  normalize(camPos - FragPos);
+	vec3 reflectDir = reflect(-lightDir, norm);
+	float spec = pow(max(dot(camDir, reflectDir), 0.0), 32);
+	return specularStrength * spec * lightColor;
+}
 
 void main(void)
 {
-	vec3 lightColor = vec3(0.9, 0.9, 0.9);
-
-	vec3 NexNormal = normalize(exNormal);
-	vec3 lightDir = normalize(Light - FragPos);
-	float intensity = max(dot(NexNormal, lightDir), 0.0);
-	vec3 diffuse = intensity * lightColor;
-
 	float ambientStrength = 0.5;
-    vec3 ambient = ambientStrength * lightColor;
+	float specularStrength = 0.5;
+	vec3 NexNormal = normalize(exNormal);
+	
+	vec3 lightColor = vec3(0.9, 0.9, 0.9);
+	vec3 lightDir = normalize(Light - FragPos);
 
-	vec3 color = (ambient + diffuse) * inColor;
+	vec3 ambient = ambientLight(ambientStrength, lightColor);
+	vec3 diffuse = diffuseLight(lightDir, NexNormal, lightColor);
+	vec3 specular = specularLight(specularStrength, lightDir, NexNormal, lightColor);
 
-	//float intensity = dot(Light, NexNormal);
-	//if (intensity < 0) intensity = 0;
-	//vec3 color = ((NexNormal * 0.2) + inColor) ;
-	//vec3 color = 
-	//vec3 color = exColor + mult;
+	vec3 color = (ambient + diffuse + specular) * inColor;
+
 	FragmentColor = vec4(color, 1.0); 
 }

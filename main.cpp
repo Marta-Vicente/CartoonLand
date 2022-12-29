@@ -98,17 +98,6 @@ private:
 
 	bool camera1_on = true;
 
-	glm::mat4 c1_ChangingViewMatrix;
-	glm::mat4 c2_ChangingViewMatrix;
-
-	double xpos, ypos = 0;
-	double old_xpos, old_ypos = 0;
-
-	mgl::ShaderProgram* ShaderCel = nullptr;
-	mgl::ShaderProgram* ShaderPhong = nullptr;
-
-	glm::vec3 light;
-
 	//Camera
 	mgl::Camera* Camera = nullptr;
 	mgl::Camera* Camera2 = nullptr;
@@ -122,6 +111,18 @@ private:
 	// Perspective Fovy(30) Aspect(640/480) NearZ(1) FarZ(30)
 	glm::mat4 ProjectionMatrixPerspective =
 		glm::perspective(glm::radians(30.0f), 4.0f / 3.0f, 1.0f, 30.0f);
+
+	glm::mat4 c1_ChangingViewMatrix;
+	glm::mat4 c2_ChangingViewMatrix;
+
+	glm::vec3 cameraPos;
+	glm::vec3 light;
+
+	double xpos, ypos = 0;
+	double old_xpos, old_ypos = 0;
+
+	mgl::ShaderProgram* ShaderCel = nullptr;
+	mgl::ShaderProgram* ShaderPhong = nullptr;
 
 	std::vector<Mesh_obj> meshes;
 
@@ -212,6 +213,7 @@ void MyApp::createShaderPrograms() {
 	ShaderCel->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
 	ShaderCel->addUniform(mgl::COLOR_ATTRIBUTE);
 	ShaderCel->addUniform("Light");
+	ShaderCel->addUniform("camPos");
 	ShaderCel->create();
 
 	ModelMatrixIdCel = ShaderCel->Uniforms[mgl::MODEL_MATRIX].index;
@@ -235,6 +237,7 @@ void MyApp::createShaderPrograms() {
 	ShaderPhong->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
 	ShaderPhong->addUniform(mgl::COLOR_ATTRIBUTE);
 	ShaderPhong->addUniform("Light");
+	ShaderPhong->addUniform("camPos");
 	ShaderPhong->create();
 
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
@@ -255,6 +258,9 @@ void MyApp::createCamera() {
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f)));
 	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
+
+	//cameraPos = { initial_postion_c1.x, initial_postion_c1.y, initial_postion_c1.z };
+	cameraPos = { 30.f, 5.f, 30.f };
 
 }
 
@@ -340,9 +346,11 @@ void MyApp::update(GLFWwindow* win) {
 		glm::quat q2 = qy * q1 * glm::inverse(qy);
 		glm::vec3 vf = { q2.x, q2.y, q2.z };
 
-		const glm::mat4 ChangingViewMatrix =
-			glm::lookAt(vf, glm::vec3(0.0f, 0.0f, 0.0f),
-				glm::vec3(0.0f, 1.0f, 0.0f));
+		cameraPos = { vf.x * zoom * 20 , vf.y * zoom * 20, vf.z * zoom * 20 };
+
+		const glm::mat4 ChangingViewMatrix = glm::lookAt(vf, 
+												glm::vec3(0.0f, 0.0f, 0.0f),
+												glm::vec3(0.0f, 1.0f, 0.0f));
 
 		Camera->setViewMatrix(ChangingViewMatrix * glm::scale(glm::vec3(1.0f * zoom)));
 		if (projection_camera1)
@@ -358,6 +366,8 @@ void MyApp::update(GLFWwindow* win) {
 		glm::quat q1 = qx * initial_position_c2 * glm::inverse(qx);
 		glm::quat q2 = qy * q1 * glm::inverse(qy);
 		glm::vec3 vf = { q2.x, q2.y, q2.z };
+
+		cameraPos = vf;
 
 		const glm::mat4 ChangingViewMatrix =
 			glm::lookAt(vf, glm::vec3(0.0f, 0.0f, 0.0f),
@@ -389,6 +399,7 @@ void MyApp::render() {
 			glUniform3f(ShaderCel->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdCel, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 			glUniform3f(ShaderCel->Uniforms["Light"].index, light.x, light.y, light.z);
+			glUniform3f(ShaderCel->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 		}
 		else if (meshes[i].shadingMode == silhouette) {
 			ShaderPhong->bind();
@@ -396,12 +407,14 @@ void MyApp::render() {
 			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 			glUniform3f(ShaderPhong->Uniforms["Light"].index, light.x, light.y, light.z);
+			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 		}
 		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
 			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 			glUniform3f(ShaderPhong->Uniforms["Light"].index, light.x, light.y, light.z);
+			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 		}
 
 		meshes[i].Mesh->draw();
