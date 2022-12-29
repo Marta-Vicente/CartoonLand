@@ -36,7 +36,7 @@ int windowWidth, windowHeight;
 ////////////////////////////////////////////////////////////////////////// VARIABLES
 
 int snapNum = 1;
-
+#define BUILDING_RADIUS 20
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
@@ -259,8 +259,8 @@ void MyApp::createCamera() {
 		glm::vec3(0.0f, 1.0f, 0.0f)));
 	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 
-	//cameraPos = { initial_postion_c1.x, initial_postion_c1.y, initial_postion_c1.z };
-	cameraPos = { 30.f, 5.f, 30.f };
+	//cameraPos = { 30.f, 5.f, 30.f };
+	cameraPos = { initial_postion_c1.x * zoom * BUILDING_RADIUS , initial_postion_c1.y * zoom * BUILDING_RADIUS, initial_postion_c1.z * zoom * BUILDING_RADIUS };
 
 }
 
@@ -346,7 +346,7 @@ void MyApp::update(GLFWwindow* win) {
 		glm::quat q2 = qy * q1 * glm::inverse(qy);
 		glm::vec3 vf = { q2.x, q2.y, q2.z };
 
-		cameraPos = { vf.x * zoom * 20 , vf.y * zoom * 20, vf.z * zoom * 20 };
+		cameraPos = { vf.x * zoom * BUILDING_RADIUS , vf.y * zoom * BUILDING_RADIUS, vf.z * zoom * BUILDING_RADIUS };
 
 		const glm::mat4 ChangingViewMatrix = glm::lookAt(vf, 
 												glm::vec3(0.0f, 0.0f, 0.0f),
@@ -367,7 +367,7 @@ void MyApp::update(GLFWwindow* win) {
 		glm::quat q2 = qy * q1 * glm::inverse(qy);
 		glm::vec3 vf = { q2.x, q2.y, q2.z };
 
-		cameraPos = vf;
+		cameraPos = { vf.x * zoom * BUILDING_RADIUS , vf.y * zoom * BUILDING_RADIUS, vf.z * zoom * BUILDING_RADIUS };
 
 		const glm::mat4 ChangingViewMatrix =
 			glm::lookAt(vf, glm::vec3(0.0f, 0.0f, 0.0f),
