@@ -30,7 +30,8 @@ vec3 specularLightPhong(float specularStrength, vec3 lightDir, vec3 norm, vec3 l
 vec3 specularLightBlinn(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor, float shineness){
 	vec3 camDir =  normalize(camPos - FragPos);
 	vec3 halfVector = normalize(lightDir + camDir);
-	float spec = pow(max(dot(halfVector, norm), 0.0), shineness);
+	float specIntensity = max(dot(halfVector, norm), 0.0);
+	float spec = pow(specIntensity, shineness);
 	return specularStrength * spec * lightColor;
 }
 

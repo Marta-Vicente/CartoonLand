@@ -175,6 +175,10 @@ void MyApp::createMeshes() {
 	sm.push_back(silhouette);
 	//--------------------------------------------------------------------------
 
+	meshesNames.push_back("lightBall.obj");
+	colors.push_back({ 0.9, 0.9, 0.1 });
+	transformations.push_back(glm::translate(light));
+	sm.push_back(phong);
 
 	for (int i = 0; i < meshesNames.size(); i++) {
 		Mesh_obj meshSingle;
@@ -266,9 +270,8 @@ void MyApp::createCamera() {
 
 void MyApp::createLight() {
 	light = {30.f, 40.f, 30.f};
-	/*light.direction = {-1.f, 0.f, 0.f};
 
-	GLuint UboId;
+	/*GLuint UboId;
 	glGenBuffers(1, &UboId);
 	glBindBuffer(GL_UNIFORM_BUFFER, UboId);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec3) * 2, 0, GL_STREAM_DRAW);
@@ -526,10 +529,10 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 ////////////////////////////////////////////////////////////////////// CALLBACKS
 
 void MyApp::initCallback(GLFWwindow * win) {
+	createLight();
 	createMeshes();
 	createShaderPrograms(); // after mesh;
 	createCamera();
-	createLight();
 
 	//SOUND
 	/*SoundEngine->play2D("../assets/surrender.mp3", true);

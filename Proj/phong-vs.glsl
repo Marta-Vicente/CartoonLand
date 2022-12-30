@@ -11,7 +11,6 @@ out vec3 exColor;
 out vec3 FragPos;
 
 uniform mat4 ModelMatrix;
-uniform vec3 inColor;
 
 uniform Camera {
    mat4 ViewMatrix;
