@@ -179,6 +179,19 @@ void MyApp::createMeshes() {
 	colors.push_back({ 0.9, 0.9, 0.1 });
 	transformations.push_back(glm::translate(light));
 	sm.push_back(phong);
+	//--------------------------------------------------------------------------
+
+	meshesNames.push_back("ground.obj");
+	colors.push_back({ 0.1f, 0.9f, 0.2f });
+	transformations.push_back(glm::scale(glm::vec3(10.f)));
+	sm.push_back(phong);
+	//--------------------------------------------------------------------------
+	meshesNames.push_back("door.obj");
+	colors.push_back({ 0.9f, 0.9f, 0.2f });
+	transformations.push_back(glm::translate(glm::vec3(20.2f, 0.f, 2.f)));
+	sm.push_back(phong);
+	//--------------------------------------------------------------------------
+
 
 	for (int i = 0; i < meshesNames.size(); i++) {
 		Mesh_obj meshSingle;
