@@ -22,9 +22,7 @@ void main(void)
 {
 	exPosition = inPosition;
 	exTexcoord = inTexcoord;
-	//exNormal = inNormal;
-	mat4 inverseModelMatrix = inverse(ModelMatrix);
-	exNormal = normalize(vec3(vec4(inNormal, 0.0)*inverseModelMatrix));
+	exNormal = inNormal;
 
 	vec4 MCPosition = vec4(inPosition, 1.0);
 	FragPos = vec3(ModelMatrix * MCPosition);

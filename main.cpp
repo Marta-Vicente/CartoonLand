@@ -51,6 +51,10 @@ enum ShadingMode {
 	cel, phong, silhouette
 };
 
+struct Light {
+	glm::vec3 lightPos, lightColor;
+};
+
 struct Mesh_obj
 {
 	mgl::Mesh* Mesh = nullptr;
@@ -58,6 +62,7 @@ struct Mesh_obj
 	glm::vec3 color;
 	glm::mat4 transformation;
 	ShadingMode shadingMode;
+	//float ambientStrength, diffuseStrength, specularStrength, shineness;
 };
 
 
@@ -116,7 +121,7 @@ private:
 	glm::mat4 c2_ChangingViewMatrix;
 
 	glm::vec3 cameraPos;
-	glm::vec3 light;
+	Light light;
 
 	double xpos, ypos = 0;
 	double old_xpos, old_ypos = 0;
@@ -166,7 +171,7 @@ void MyApp::createMeshes() {
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.9f, 0.5f, 0.1f });
 	transformations.push_back(ModelMatrix);
-	sm.push_back(phong);
+	sm.push_back(cel);
 	//--------------------------------------------------------------------------
 	
 	meshesNames.push_back("pantheon.obj");
@@ -177,7 +182,7 @@ void MyApp::createMeshes() {
 
 	meshesNames.push_back("lightBall.obj");
 	colors.push_back({ 0.9, 0.9, 0.1 });
-	transformations.push_back(glm::translate(light));
+	transformations.push_back(glm::translate(light.lightPos));
 	sm.push_back(phong);
 	//--------------------------------------------------------------------------
 
@@ -229,8 +234,7 @@ void MyApp::createShaderPrograms() {
 	ShaderCel->addUniform(mgl::MODEL_MATRIX);
 	ShaderCel->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
 	ShaderCel->addUniform(mgl::COLOR_ATTRIBUTE);
-	ShaderCel->addUniform("Light");
-	ShaderCel->addUniform("camPos");
+	ShaderCel->addUniform("lightPos");
 	ShaderCel->create();
 
 	ModelMatrixIdCel = ShaderCel->Uniforms[mgl::MODEL_MATRIX].index;
@@ -253,7 +257,8 @@ void MyApp::createShaderPrograms() {
 	ShaderPhong->addUniform(mgl::MODEL_MATRIX);
 	ShaderPhong->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
 	ShaderPhong->addUniform(mgl::COLOR_ATTRIBUTE);
-	ShaderPhong->addUniform("Light");
+	ShaderPhong->addUniform("lightPos");
+	ShaderPhong->addUniform("lightColor");
 	ShaderPhong->addUniform("camPos");
 	ShaderPhong->create();
 
@@ -282,7 +287,8 @@ void MyApp::createCamera() {
 }
 
 void MyApp::createLight() {
-	light = {30.f, 40.f, 30.f};
+	light.lightPos = {30.f, 40.f, 30.f};
+	light.lightColor = { 0.9, 0.7, 0.9 };
 
 	/*GLuint UboId;
 	glGenBuffers(1, &UboId);
@@ -414,22 +420,23 @@ void MyApp::render() {
 			ShaderCel->bind();
 			glUniform3f(ShaderCel->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdCel, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
-			glUniform3f(ShaderCel->Uniforms["Light"].index, light.x, light.y, light.z);
-			glUniform3f(ShaderCel->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
+			glUniform3f(ShaderCel->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
 		}
 		else if (meshes[i].shadingMode == silhouette) {
 			ShaderPhong->bind();
 			glCullFace(GL_FRONT);
 			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
-			glUniform3f(ShaderPhong->Uniforms["Light"].index, light.x, light.y, light.z);
+			glUniform3f(ShaderPhong->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
+			glUniform3f(ShaderPhong->Uniforms["lightColor"].index, light.lightColor.x, light.lightColor.y, light.lightColor.z);
 			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 		}
 		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
 			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
-			glUniform3f(ShaderPhong->Uniforms["Light"].index, light.x, light.y, light.z);
+			glUniform3f(ShaderPhong->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
+			glUniform3f(ShaderPhong->Uniforms["lightColor"].index, light.lightColor.x, light.lightColor.y, light.lightColor.z);
 			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 		}
 

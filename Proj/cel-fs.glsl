@@ -8,14 +8,12 @@ in vec3 FragPos;
 out vec4 FragmentColor;
 
 uniform vec3 inColor;
-uniform vec3 Light;
-uniform vec3 camPos;
+uniform vec3 lightPos;
 
 void main(void)
 {
 	vec3 NexNormal = normalize(exNormal);
-	vec3 lightColor = vec3(0.9, 0.9, 0.9);
-	vec3 lightDir = normalize(Light - FragPos);
+	vec3 lightDir = normalize(lightPos - FragPos);
 
 	float intensity = dot(NexNormal, lightDir);
 	float gradient = 0.1;
