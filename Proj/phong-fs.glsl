@@ -15,30 +15,39 @@ vec3 ambientLight(float ambientStrenght, vec3 lightColor){
 	return ambientStrenght * lightColor;
 }
 
-vec3 diffuseLight(vec3 lightDir, vec3 norm, vec3 lightColor){
+vec3 diffuseLight(float diffuseStrenght, vec3 lightDir, vec3 norm, vec3 lightColor){
 	float intensity = max(dot(norm, lightDir), 0.0);
-	return intensity * lightColor;
+	return diffuseStrenght * intensity * lightColor;
 }
 
-vec3 specularLight(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor){
+vec3 specularLightPhong(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor, float shineness){
 	vec3 camDir =  normalize(camPos - FragPos);
 	vec3 reflectDir = reflect(-lightDir, norm);
-	float spec = pow(max(dot(camDir, reflectDir), 0.0), 32);
+	float spec = pow(max(dot(camDir, reflectDir), 0.0), shineness);
+	return specularStrength * spec * lightColor;
+}
+
+vec3 specularLightBlinn(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor, float shineness){
+	vec3 camDir =  normalize(camPos - FragPos);
+	vec3 halfVector = normalize(lightDir + camDir);
+	float spec = pow(max(dot(halfVector, norm), 0.0), shineness);
 	return specularStrength * spec * lightColor;
 }
 
 void main(void)
 {
 	float ambientStrength = 0.5;
+	float diffuseStrenght = 0.9;
 	float specularStrength = 0.5;
+	float shineness = 7;
+
 	vec3 NexNormal = normalize(exNormal);
-	
 	vec3 lightColor = vec3(0.9, 0.9, 0.9);
 	vec3 lightDir = normalize(Light - FragPos);
 
 	vec3 ambient = ambientLight(ambientStrength, lightColor);
-	vec3 diffuse = diffuseLight(lightDir, NexNormal, lightColor);
-	vec3 specular = specularLight(specularStrength, lightDir, NexNormal, lightColor);
+	vec3 diffuse = diffuseLight(diffuseStrenght, lightDir, NexNormal, lightColor);
+	vec3 specular = specularLightPhong(specularStrength, lightDir, NexNormal, lightColor, shineness);
 
 	vec3 color = (ambient + diffuse + specular) * inColor;
 
