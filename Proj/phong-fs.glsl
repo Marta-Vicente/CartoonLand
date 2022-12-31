@@ -11,6 +11,7 @@ uniform vec3 inColor;
 uniform vec3 lightPos;
 uniform vec3 lightColor;
 uniform vec3 camPos;
+uniform vec4 material;
 
 vec3 ambientLight(float ambientStrenght, vec3 lightColor){
 	return ambientStrenght * lightColor;
@@ -38,10 +39,10 @@ vec3 specularLightBlinn(float specularStrength, vec3 lightDir, vec3 norm, vec3 l
 
 void main(void)
 {
-	float ambientStrength = 0.5;
-	float diffuseStrenght = 0.9;
-	float specularStrength = 0.5;
-	float shineness = 7;
+	float ambientStrength = material.x;
+	float diffuseStrenght = material.y;
+	float specularStrength = material.z;
+	float shineness = material.w;
 
 	vec3 NexNormal = normalize(exNormal);
 	vec3 lightDir = normalize(lightPos - FragPos);
@@ -53,4 +54,5 @@ void main(void)
 	vec3 color = (ambient + diffuse + specular) * inColor;
 
 	FragmentColor = vec4(color, 1.0); 
+
 }

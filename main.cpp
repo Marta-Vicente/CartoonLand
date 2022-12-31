@@ -55,6 +55,10 @@ struct Light {
 	glm::vec3 lightPos, lightColor;
 };
 
+struct Material{
+	float ambientStrength, diffuseStrength, specularStrength, shineness;
+};
+
 struct Mesh_obj
 {
 	mgl::Mesh* Mesh = nullptr;
@@ -62,7 +66,7 @@ struct Mesh_obj
 	glm::vec3 color;
 	glm::mat4 transformation;
 	ShadingMode shadingMode;
-	//float ambientStrength, diffuseStrength, specularStrength, shineness;
+	Material material;
 };
 
 
@@ -166,35 +170,40 @@ void MyApp::createMeshes() {
 	std::vector<glm::vec3> colors;
 	std::vector<glm::mat4> transformations;
 	std::vector<ShadingMode> sm;
-
+	std::vector<Material> materials;	//ambientStrength, diffuseStrength, specularStrength, shineness;
 
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.9f, 0.5f, 0.1f });
 	transformations.push_back(ModelMatrix);
-	sm.push_back(cel);
+	sm.push_back(phong);
+	materials.push_back({ 0.5f, 0.9f, 0.3f, 4.f });
 	//--------------------------------------------------------------------------
 	
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.1f, 0.1f, 0.1f });
 	transformations.push_back(glm::scale(glm::vec3(1.01f, 1.01f, 1.01f)));
 	sm.push_back(silhouette);
+	materials.push_back({ 0.5f, 0.9f, 0.5f, 7.f });
 	//--------------------------------------------------------------------------
 
 	meshesNames.push_back("lightBall.obj");
 	colors.push_back({ 0.9, 0.9, 0.1 });
 	transformations.push_back(glm::translate(light.lightPos));
 	sm.push_back(phong);
+	materials.push_back({ 0.5f, 0.9f, 0.9f, 7.f });
 	//--------------------------------------------------------------------------
 
 	meshesNames.push_back("ground.obj");
 	colors.push_back({ 0.1f, 0.9f, 0.2f });
 	transformations.push_back(glm::scale(glm::vec3(10.f)));
 	sm.push_back(phong);
+	materials.push_back({ 0.9f, 0.9f, 0.1f, 2.f });
 	//--------------------------------------------------------------------------
 	meshesNames.push_back("door.obj");
 	colors.push_back({ 0.9f, 0.9f, 0.2f });
 	transformations.push_back(glm::translate(glm::vec3(20.2f, 0.f, 2.f)));
 	sm.push_back(phong);
+	materials.push_back({ 0.5f, 0.9f, 0.6f, 7.f });
 	//--------------------------------------------------------------------------
 
 
@@ -206,9 +215,11 @@ void MyApp::createMeshes() {
 		meshSingle.color = colors[i];
 		meshSingle.transformation = transformations[i];
 		meshSingle.shadingMode = sm[i];
+		meshSingle.material = materials[i];
 		meshes.push_back(meshSingle);
 	}
 	//updateTransformationMatrices();
+
 
 }
 
@@ -260,6 +271,7 @@ void MyApp::createShaderPrograms() {
 	ShaderPhong->addUniform("lightPos");
 	ShaderPhong->addUniform("lightColor");
 	ShaderPhong->addUniform("camPos");
+	ShaderPhong->addUniform("material");
 	ShaderPhong->create();
 
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
@@ -415,6 +427,7 @@ void MyApp::render() {
 	}
 	ShaderCel->unbind();*/
 
+
 	for (int i = 0; i < meshes.size(); i++) {
 		if (meshes[i].shadingMode == cel) {
 			ShaderCel->bind();
@@ -430,6 +443,7 @@ void MyApp::render() {
 			glUniform3f(ShaderPhong->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
 			glUniform3f(ShaderPhong->Uniforms["lightColor"].index, light.lightColor.x, light.lightColor.y, light.lightColor.z);
 			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
+			glUniform4f(ShaderPhong->Uniforms["material"].index, meshes[i].material.ambientStrength, meshes[i].material.diffuseStrength, meshes[i].material.specularStrength, meshes[i].material.shineness);
 		}
 		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
@@ -438,6 +452,7 @@ void MyApp::render() {
 			glUniform3f(ShaderPhong->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
 			glUniform3f(ShaderPhong->Uniforms["lightColor"].index, light.lightColor.x, light.lightColor.y, light.lightColor.z);
 			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
+			glUniform4f(ShaderPhong->Uniforms["material"].index, meshes[i].material.ambientStrength, meshes[i].material.diffuseStrength, meshes[i].material.specularStrength, meshes[i].material.shineness);
 		}
 
 		meshes[i].Mesh->draw();

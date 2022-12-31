@@ -28,4 +28,5 @@ void main(void)
 	FragPos = vec3(ModelMatrix * MCPosition);
 
 	gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * MCPosition;
+
 }
