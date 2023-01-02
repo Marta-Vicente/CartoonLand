@@ -69,6 +69,14 @@ struct Mesh_obj
 	Material material;
 };
 
+glm::vec3 sphericalToCartesian(float alpha, float beta, float radius) {
+	float x = radius * glm::sin(glm::radians(beta)) * glm::cos(glm::radians(alpha));
+	float y = radius * glm::cos(glm::radians(beta));
+	float z = radius * glm::sin(glm::radians(beta)) * glm::sin(glm::radians(alpha));
+
+	return { x, y, z };
+}
+
 
 class MyApp : public mgl::App {
 
@@ -79,6 +87,8 @@ public:
 	void windowCloseCallback(GLFWwindow* win) override;
 	void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) override;
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) override;
+	void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) override;
+
 private:
 	const GLuint POSITION = 0, COLOR = 1, UBO_BP = 0;
 
@@ -87,23 +97,25 @@ private:
 	glm::vec3 axis_z = { 0.0f, 0.0f, 1.0f };
 
 	// CAMERA1
-	glm::quat initial_postion_c1 = { 3.0f, 10.f, 5.422f, 6.928f };
-	float alfa = 0.0f;
-	float beta = 0.0f;
+	
+	float alfa = 10.0f;
+	float beta = 45.0f;
+	float radius = 50.f;
+	float min_radius = 0.01f;
+	float max_radius = 60.f;
 	int accelaration_x = 0;
 	int accelaration_y = 0;
-	float zoom = 0.1f;
-	bool zooming = true;
 	bool projection_camera1 = true;
+	glm::vec3 initPos1 = sphericalToCartesian(alfa, beta, radius);
 
 	// CAMERA2
-	glm::quat initial_position_c2 = { 0.f, 0.317f, 0.167f, 11.308f };
 	float alfa2 = 0.0f;
 	float beta2 = 0.0f;
+	float radius2 = 25.f;
 	int accelaration_x2 = 0;
 	int accelaration_y2 = 0;
-	float zoom2 = 2.f;
 	bool projection_camera2 = true;
+	glm::vec3 initPos2 = sphericalToCartesian(alfa2, beta2, radius2);
 
 	bool camera1_on = true;
 
@@ -119,7 +131,8 @@ private:
 
 	// Perspective Fovy(30) Aspect(640/480) NearZ(1) FarZ(30)
 	glm::mat4 ProjectionMatrixPerspective =
-		glm::perspective(glm::radians(30.0f), 4.0f / 3.0f, 1.0f, 30.0f);
+		//glm::perspective(glm::radians(30.0f), 4.0f / 3.0f, 1.0f, 30.0f);
+		glm::perspective(glm::radians(70.0f), 4.0f / 3.0f, 1.0f, 100.0f);
 
 	glm::mat4 c1_ChangingViewMatrix;
 	glm::mat4 c2_ChangingViewMatrix;
@@ -186,7 +199,7 @@ void MyApp::createMeshes() {
 	materials.push_back({ 0.5f, 0.9f, 0.5f, 7.f });
 	//--------------------------------------------------------------------------
 
-	meshesNames.push_back("lightBall.obj");
+	meshesNames.push_back("light2.obj");
 	colors.push_back({ 0.9, 0.9, 0.1 });
 	transformations.push_back(glm::translate(light.lightPos));
 	sm.push_back(phong);
@@ -288,26 +301,22 @@ void MyApp::createCamera() {
 
 	Camera2 = new mgl::Camera(UBO_BP);
 	Camera = new mgl::Camera(UBO_BP);
-	Camera->setViewMatrix(glm::lookAt({ initial_postion_c1.x,initial_postion_c1.y,initial_postion_c1.z },
+	/*Camera->setViewMatrix(glm::lookAt({initial_postion_c1.x,initial_postion_c1.y,initial_postion_c1.z},
+		glm::vec3(0.0f, 0.0f, 0.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f)));*/
+	Camera->setViewMatrix(glm::lookAt({ initPos1.x,initPos1.y,initPos1.z },
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f)));
 	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 
-	//cameraPos = { 30.f, 5.f, 30.f };
-	cameraPos = { initial_postion_c1.x * zoom * BUILDING_RADIUS , initial_postion_c1.y * zoom * BUILDING_RADIUS, initial_postion_c1.z * zoom * BUILDING_RADIUS };
+	cameraPos = { 30.f, 5.f, 30.f };
+	//cameraPos = { initial_postion_c1.x * zoom * BUILDING_RADIUS , initial_postion_c1.y * zoom * BUILDING_RADIUS, initial_postion_c1.z * zoom * BUILDING_RADIUS };
 
 }
 
 void MyApp::createLight() {
 	light.lightPos = {30.f, 40.f, 30.f};
 	light.lightColor = { 0.9, 0.7, 0.9 };
-
-	/*GLuint UboId;
-	glGenBuffers(1, &UboId);
-	glBindBuffer(GL_UNIFORM_BUFFER, UboId);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::vec3) * 2, 0, GL_STREAM_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, LIGHT_BP, UboId);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);*/
 }
 
 /////////////////////////////////////////////////////////////////////////// DRAW
@@ -374,19 +383,29 @@ void MyApp::update(GLFWwindow* win) {
 	//CAMERAS
 	if (camera1_on) {
 
-		glm::quat qy = glm::angleAxis(glm::radians(-alfa), axis_y);
+		/*glm::quat qy = glm::angleAxis(glm::radians(-alfa), axis_y);
 		glm::quat qx = glm::angleAxis(glm::radians(beta), axis_x);
 		glm::quat q1 = qx * initial_postion_c1 * glm::inverse(qx);
 		glm::quat q2 = qy * q1 * glm::inverse(qy);
-		glm::vec3 vf = { q2.x, q2.y, q2.z };
+		glm::vec3 vf = { q2.x, q2.y, q2.z };*/
 
-		cameraPos = { vf.x * zoom * BUILDING_RADIUS , vf.y * zoom * BUILDING_RADIUS, vf.z * zoom * BUILDING_RADIUS };
+		/*if (vf.x > 0) vf.x += BUILDING_RADIUS;
+		else if (vf.x < 0) vf.x -= BUILDING_RADIUS;
+		if (vf.z > 0) vf.z += BUILDING_RADIUS;
+		else if (vf.z < 0) vf.z -= BUILDING_RADIUS;*/
+		//std::cout << vf.x << " " << vf.y << " " << vf.z << std::endl;
 
-		const glm::mat4 ChangingViewMatrix = glm::lookAt(vf, 
+		glm::vec3 newPos = sphericalToCartesian(alfa, beta, radius);
+		cameraPos = newPos;
+
+		/*const glm::mat4 ChangingViewMatrix = glm::lookAt(vf,
+												glm::vec3(0.0f, 0.0f, 0.0f),
+												glm::vec3(0.0f, 1.0f, 0.0f));*/
+		const glm::mat4 ChangingViewMatrix = glm::lookAt(newPos,
 												glm::vec3(0.0f, 0.0f, 0.0f),
 												glm::vec3(0.0f, 1.0f, 0.0f));
 
-		Camera->setViewMatrix(ChangingViewMatrix * glm::scale(glm::vec3(1.0f * zoom)));
+		Camera->setViewMatrix(ChangingViewMatrix);
 		if (projection_camera1)
 			Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 		else
@@ -395,19 +414,20 @@ void MyApp::update(GLFWwindow* win) {
 	}
 	else {
 
-		glm::quat qy = glm::angleAxis(glm::radians(-alfa2), axis_y);
+		/*glm::quat qy = glm::angleAxis(glm::radians(-alfa2), axis_y);
 		glm::quat qx = glm::angleAxis(glm::radians(beta2), axis_x);
 		glm::quat q1 = qx * initial_position_c2 * glm::inverse(qx);
 		glm::quat q2 = qy * q1 * glm::inverse(qy);
-		glm::vec3 vf = { q2.x, q2.y, q2.z };
+		glm::vec3 vf = { q2.x, q2.y, q2.z };*/
 
-		cameraPos = { vf.x * zoom * BUILDING_RADIUS , vf.y * zoom * BUILDING_RADIUS, vf.z * zoom * BUILDING_RADIUS };
+		glm::vec3 newPos = sphericalToCartesian(alfa2, beta2, radius2);
+		cameraPos = newPos;
 
 		const glm::mat4 ChangingViewMatrix =
-			glm::lookAt(vf, glm::vec3(0.0f, 0.0f, 0.0f),
+			glm::lookAt(newPos, glm::vec3(0.0f, 0.0f, 0.0f),
 				glm::vec3(0.0f, 1.0f, 0.0f));
 
-		Camera2->setViewMatrix(ChangingViewMatrix * glm::scale(glm::vec3(1.0f * zoom2)));
+		Camera2->setViewMatrix(ChangingViewMatrix);
 		if (projection_camera2)
 			Camera2->setProjectionMatrix(ProjectionMatrixPerspective);
 		else
@@ -472,10 +492,16 @@ void MyApp::render() {
 
 void MyApp::scrollCallback(GLFWwindow * window, double xoffset, double yoffset) {
 
-	if (camera1_on)
-		zoom += (float)yoffset * 0.1f;
-	else
-		zoom2 += (float)yoffset * 0.1f;
+	if (camera1_on) {
+		radius -= (float)yoffset * 0.5f;
+		if (radius < min_radius) radius = min_radius;
+		if (radius > max_radius) radius = max_radius;
+	}
+	else {
+		radius2 -= (float)yoffset * 0.5f;
+		if (radius2 < min_radius) radius2 = min_radius;
+		if (radius2 > max_radius) radius2 = max_radius;
+	}
 }
 
 void MyApp::processMouseMovement(GLFWwindow * win) {
@@ -506,10 +532,11 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 		if (beta >= 360.0f || beta <= -360.0f) {
 			beta = 0.0f;
 		}
+
 		old_xpos = xpos;
 		old_ypos = ypos;
 
-		alfa += (float)accelaration_x/10;
+		alfa += (float)accelaration_x / 10;
 		beta += (float)accelaration_y/10;
 
 		if (accelaration_x > 0)
@@ -637,6 +664,10 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 		//updateTransformationMatrices();
 	}
 	
+}
+
+void MyApp::mouseButtonCallback(GLFWwindow* window, int button, int action,int mods) {
+
 }
 
 /////////////////////////////////////////////////////////////////////////// EXTRA
