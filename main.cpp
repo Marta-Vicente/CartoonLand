@@ -100,6 +100,7 @@ private:
 	glm::vec3 axis_y = { 0.0f, 1.0f, 0.0f };
 	glm::vec3 axis_z = { 0.0f, 0.0f, 1.0f };
 
+	float minBeta = 80.f;
 	float maxBeta = 88.f;
 	float min_radius = 0.01f;
 	float max_radius = 60.f;
@@ -108,7 +109,7 @@ private:
 
 	// CAMERA1
 	float alfa = 10.0f;
-	float beta = 45.0f;
+	float beta = 81.0f;
 	float radius = 50.f;
 	int accelaration_x = 0;
 	int accelaration_y = 0;
@@ -142,7 +143,8 @@ private:
 	glm::mat4 c2_ChangingViewMatrix;
 
 	glm::vec3 cameraPos;
-	Light light, lightHand;
+	Light light;
+	bool lightHand = false;
 
 	double xpos, ypos = 0;
 	double old_xpos, old_ypos = 0;
@@ -265,6 +267,8 @@ void MyApp::createShaderPrograms() {
 	ShaderCel->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
 	ShaderCel->addUniform(mgl::COLOR_ATTRIBUTE);
 	ShaderCel->addUniform("lightPos");
+	ShaderCel->addUniform("lightHand");
+	ShaderCel->addUniform("camPos");
 	ShaderCel->create();
 
 	ModelMatrixIdCel = ShaderCel->Uniforms[mgl::MODEL_MATRIX].index;
@@ -289,6 +293,7 @@ void MyApp::createShaderPrograms() {
 	ShaderPhong->addUniform(mgl::COLOR_ATTRIBUTE);
 	ShaderPhong->addUniform("lightPos");
 	ShaderPhong->addUniform("lightColor");
+	ShaderPhong->addUniform("lightHand");
 	ShaderPhong->addUniform("camPos");
 	ShaderPhong->addUniform("material");
 	ShaderPhong->create();
@@ -438,6 +443,7 @@ void MyApp::render() {
 			glUniform3f(ShaderCel->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdCel, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 			glUniform3f(ShaderCel->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
+			glUniform1i(ShaderCel->Uniforms["lightHand"].index, lightHand);
 		}
 		else if (meshes[i].shadingMode == silhouette) {
 			ShaderPhong->bind();
@@ -448,6 +454,7 @@ void MyApp::render() {
 			glUniform3f(ShaderPhong->Uniforms["lightColor"].index, light.lightColor.x, light.lightColor.y, light.lightColor.z);
 			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 			glUniform4f(ShaderPhong->Uniforms["material"].index, meshes[i].material.ambientStrength, meshes[i].material.diffuseStrength, meshes[i].material.specularStrength, meshes[i].material.shineness);
+			glUniform1i(ShaderPhong->Uniforms["lightHand"].index, lightHand);
 		}
 		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
@@ -457,8 +464,9 @@ void MyApp::render() {
 			glUniform3f(ShaderPhong->Uniforms["lightColor"].index, light.lightColor.x, light.lightColor.y, light.lightColor.z);
 			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 			glUniform4f(ShaderPhong->Uniforms["material"].index, meshes[i].material.ambientStrength, meshes[i].material.diffuseStrength, meshes[i].material.specularStrength, meshes[i].material.shineness);
+			glUniform1i(ShaderPhong->Uniforms["lightHand"].index, lightHand);
 		}
-
+		
 		meshes[i].Mesh->draw();
 
 		if (meshes[i].shadingMode == cel)
@@ -544,6 +552,7 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 
 		if (radius * glm::cos(glm::radians(beta)) < 1.7f && radius > BUILDING_RADIUS)
 			beta = maxBeta;
+		if (radius > BUILDING_RADIUS) beta = minBeta;
 	}
 	else {
 		int state = glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT);
@@ -653,6 +662,9 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 		else {
 			Camera2->Update(UBO_BP);
 		}
+	}
+	if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+		lightHand = !lightHand;
 	}
 	if (key == GLFW_KEY_LEFT && action == GLFW_REPEAT) {
 		parametric_movement += param_sensitivity;
