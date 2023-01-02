@@ -35,8 +35,9 @@ int windowWidth, windowHeight;
 
 ////////////////////////////////////////////////////////////////////////// VARIABLES
 
-int snapNum = 1;
 #define BUILDING_RADIUS 20
+int snapNum = 1;
+int meshDoor;
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
@@ -49,6 +50,10 @@ const glm::mat4 ChangingModelMatrix = ModelMatrix;
 
 enum ShadingMode {
 	cel, phong, silhouette
+};
+
+enum DoorState {
+	closed, open, toOpen
 };
 
 struct Light {
@@ -98,6 +103,8 @@ private:
 	float maxBeta = 88.f;
 	float min_radius = 0.01f;
 	float max_radius = 60.f;
+	bool inDoorArea = false;
+	DoorState door = closed;
 
 	// CAMERA1
 	float alfa = 10.0f;
@@ -135,7 +142,7 @@ private:
 	glm::mat4 c2_ChangingViewMatrix;
 
 	glm::vec3 cameraPos;
-	Light light;
+	Light light, lightHand;
 
 	double xpos, ypos = 0;
 	double old_xpos, old_ypos = 0;
@@ -160,6 +167,7 @@ private:
 	void update(GLFWwindow* win);
 	void updateTransformationMatrices();
 	void processMouseMovement(GLFWwindow* win);
+	void openCloseDoor();
 	//render
 	void render();
 	//window size
@@ -184,14 +192,14 @@ void MyApp::createMeshes() {
 
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.9f, 0.5f, 0.1f });
-	transformations.push_back(ModelMatrix);
+	transformations.push_back(glm::translate(glm::vec3(0.f, 0.1f, 0.f)));
 	sm.push_back(phong);
 	materials.push_back({ 0.5f, 0.9f, 0.3f, 4.f });
 	//--------------------------------------------------------------------------
 	
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.1f, 0.1f, 0.1f });
-	transformations.push_back(glm::scale(glm::vec3(1.01f, 1.01f, 1.01f)));
+	transformations.push_back(glm::translate(glm::vec3(0.f, 0.1f, 0.f)) * glm::scale(glm::vec3(1.01f, 1.01f, 1.01f)));
 	sm.push_back(silhouette);
 	materials.push_back({ 0.5f, 0.9f, 0.5f, 7.f });
 	//--------------------------------------------------------------------------
@@ -214,6 +222,7 @@ void MyApp::createMeshes() {
 	transformations.push_back(glm::translate(glm::vec3(20.2f, 0.f, 2.f)));
 	sm.push_back(phong);
 	materials.push_back({ 0.5f, 0.9f, 0.6f, 7.f });
+	meshDoor = meshesNames.size() - 1;
 	//--------------------------------------------------------------------------
 
 
@@ -405,6 +414,9 @@ void MyApp::update(GLFWwindow* win) {
 		else
 			Camera2->setProjectionMatrix(ProjectionMatrixOrtho);
 	}
+	if (door == toOpen) {
+		openCloseDoor();
+	}
 }
 
 
@@ -465,14 +477,18 @@ void MyApp::render() {
 void MyApp::scrollCallback(GLFWwindow * window, double xoffset, double yoffset) {
 
 	if (camera1_on) {
+		float oldRadius;
 		radius -= (float)yoffset * 0.5f;
-		if (radius < min_radius) radius = min_radius;
 		if (radius > max_radius) radius = max_radius;
+		if (!inDoorArea && radius < BUILDING_RADIUS + 3.f)
+			radius = BUILDING_RADIUS + 3.f;
 	}
 	else {
 		radius2 -= (float)yoffset * 0.5f;
 		if (radius2 < min_radius) radius2 = min_radius;
 		if (radius2 > max_radius) radius2 = max_radius;
+		if (!inDoorArea && radius < BUILDING_RADIUS + 3.f)
+			radius = BUILDING_RADIUS + 3.f;
 	}
 }
 
@@ -510,6 +526,12 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 		alfa += (float)accelaration_x / 10;
 		beta += (float)accelaration_y/10;
 
+		if (-6 < alfa && alfa < 7 && 18 < radius && radius < 30) { 
+			inDoorArea = true;
+			if (door == closed) door = toOpen;
+		}
+		else inDoorArea = false; //ASSIM N CONSIGO ENTRAR	
+
 		if (accelaration_x > 0)
 			accelaration_x -= 1;
 		else if (accelaration_x < 0)
@@ -519,6 +541,7 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 			accelaration_y -= 1;
 		else if (accelaration_y < 0)
 			accelaration_y += 1;
+
 		if (radius * glm::cos(glm::radians(beta)) < 1.7f && radius > BUILDING_RADIUS)
 			beta = maxBeta;
 	}
@@ -533,6 +556,7 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 
 			alfa2 += (float)diffx * 0.1f;
 			accelaration_x2 += (int)diffx;
+
 			beta2 -= (float)diffy * 0.1f;
 			accelaration_y2 -= (int)diffy;
 		}
@@ -558,7 +582,15 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 			accelaration_y2 -= 1;
 		else if (accelaration_y2 < 0)
 			accelaration_y2 += 1;
+
+		if (radius2 * glm::cos(glm::radians(beta2)) < 1.7f && radius > BUILDING_RADIUS)
+			beta2 = maxBeta;
 	}
+}
+
+void MyApp::openCloseDoor() {
+	meshes[meshDoor].transformation = glm::translate(glm::vec3(20.2f, 0.f, 2.f)) * glm::rotate(glm::radians(-120.f), glm::vec3(0.f, 1.f, 0.f));
+	door = open;
 }
 
 ////////////////////////////////////////////////////////////////////// CALLBACKS

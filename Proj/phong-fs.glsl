@@ -12,14 +12,20 @@ uniform vec3 lightPos;
 uniform vec3 lightColor;
 uniform vec3 camPos;
 uniform vec4 material;
+uniform bool lightHand;
 
 vec3 ambientLight(float ambientStrenght, vec3 lightColor){
 	return ambientStrenght * lightColor;
 }
 
-vec3 diffuseLight(float diffuseStrenght, vec3 lightDir, vec3 norm, vec3 lightColor){
-	float intensity = max(dot(norm, lightDir), 0.0);
-	return diffuseStrenght * intensity * lightColor;
+vec3 diffuseLight(float diffuseStrenght, vec3 norm, vec3 lightColor, vec3 lightDir, vec3 lightDir2){
+	float intensity1 = max(dot(norm, lightDir), 0.0);
+	if (lightHand) {
+		float intensity2 = max(dot(norm, lightDir2), 0.0);
+		return diffuseStrenght * lightColor * (intensity1 + intensity2);
+	}
+	else
+		return diffuseStrenght * lightColor * intensity1;
 }
 
 vec3 specularLightPhong(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor, float shineness){
@@ -46,9 +52,10 @@ void main(void)
 
 	vec3 NexNormal = normalize(exNormal);
 	vec3 lightDir = normalize(lightPos - FragPos);
+	vec3 lightDirHand = normalize(camPos - FragPos);
 
 	vec3 ambient = ambientLight(ambientStrength, lightColor);
-	vec3 diffuse = diffuseLight(diffuseStrenght, lightDir, NexNormal, lightColor);
+	vec3 diffuse = diffuseLight(diffuseStrenght, NexNormal, lightColor, lightDir, lightDirHand);
 	vec3 specular = specularLightPhong(specularStrength, lightDir, NexNormal, lightColor, shineness);
 
 	vec3 color = (ambient + diffuse + specular) * inColor;
