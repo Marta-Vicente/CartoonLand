@@ -100,6 +100,7 @@ private:
 	
 	float alfa = 10.0f;
 	float beta = 45.0f;
+	float maxBeta = 88.f;
 	float radius = 50.f;
 	float min_radius = 0.01f;
 	float max_radius = 60.f;
@@ -510,7 +511,6 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 	double scrollX = 0; double scrollY = 0;
 
 	if (camera1_on) {
-
 		int state = glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT);
 
 		if (state == GLFW_PRESS) {
@@ -538,6 +538,7 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 
 		alfa += (float)accelaration_x / 10;
 		beta += (float)accelaration_y/10;
+		//float y = radius * glm::cos(glm::radians(beta));
 
 		if (accelaration_x > 0)
 			accelaration_x -= 1;
@@ -548,6 +549,8 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 			accelaration_y -= 1;
 		else if (accelaration_y < 0)
 			accelaration_y += 1;
+		if (radius * glm::cos(glm::radians(beta)) < 1.7f && radius > BUILDING_RADIUS)
+			beta = maxBeta;
 	}
 	else {
 		int state = glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT);
