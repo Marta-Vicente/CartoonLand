@@ -87,7 +87,6 @@ public:
 	void windowCloseCallback(GLFWwindow* win) override;
 	void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) override;
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) override;
-	void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) override;
 
 private:
 	const GLuint POSITION = 0, COLOR = 1, UBO_BP = 0;
@@ -96,14 +95,14 @@ private:
 	glm::vec3 axis_y = { 0.0f, 1.0f, 0.0f };
 	glm::vec3 axis_z = { 0.0f, 0.0f, 1.0f };
 
-	// CAMERA1
-	
-	float alfa = 10.0f;
-	float beta = 45.0f;
 	float maxBeta = 88.f;
-	float radius = 50.f;
 	float min_radius = 0.01f;
 	float max_radius = 60.f;
+
+	// CAMERA1
+	float alfa = 10.0f;
+	float beta = 45.0f;
+	float radius = 50.f;
 	int accelaration_x = 0;
 	int accelaration_y = 0;
 	bool projection_camera1 = true;
@@ -126,13 +125,10 @@ private:
 	GLint ModelMatrixIdCel, ModelMatrixIdPhong;
 
 	//CAMERA TYPES
-	// Orthographic LeftRight(-2,2) BottomTop(-2,2) NearFar(1,10)
 	glm::mat4 ProjectionMatrixOrtho =
 		glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 1.0f, 15.0f);
 
-	// Perspective Fovy(30) Aspect(640/480) NearZ(1) FarZ(30)
 	glm::mat4 ProjectionMatrixPerspective =
-		//glm::perspective(glm::radians(30.0f), 4.0f / 3.0f, 1.0f, 30.0f);
 		glm::perspective(glm::radians(70.0f), 4.0f / 3.0f, 1.0f, 100.0f);
 
 	glm::mat4 c1_ChangingViewMatrix;
@@ -302,16 +298,12 @@ void MyApp::createCamera() {
 
 	Camera2 = new mgl::Camera(UBO_BP);
 	Camera = new mgl::Camera(UBO_BP);
-	/*Camera->setViewMatrix(glm::lookAt({initial_postion_c1.x,initial_postion_c1.y,initial_postion_c1.z},
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(0.0f, 1.0f, 0.0f)));*/
 	Camera->setViewMatrix(glm::lookAt({ initPos1.x,initPos1.y,initPos1.z },
 		glm::vec3(0.0f, 0.0f, 0.0f),
 		glm::vec3(0.0f, 1.0f, 0.0f)));
 	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 
-	cameraPos = { 30.f, 5.f, 30.f };
-	//cameraPos = { initial_postion_c1.x * zoom * BUILDING_RADIUS , initial_postion_c1.y * zoom * BUILDING_RADIUS, initial_postion_c1.z * zoom * BUILDING_RADIUS };
+	cameraPos = initPos1;
 
 }
 
@@ -384,24 +376,9 @@ void MyApp::update(GLFWwindow* win) {
 	//CAMERAS
 	if (camera1_on) {
 
-		/*glm::quat qy = glm::angleAxis(glm::radians(-alfa), axis_y);
-		glm::quat qx = glm::angleAxis(glm::radians(beta), axis_x);
-		glm::quat q1 = qx * initial_postion_c1 * glm::inverse(qx);
-		glm::quat q2 = qy * q1 * glm::inverse(qy);
-		glm::vec3 vf = { q2.x, q2.y, q2.z };*/
-
-		/*if (vf.x > 0) vf.x += BUILDING_RADIUS;
-		else if (vf.x < 0) vf.x -= BUILDING_RADIUS;
-		if (vf.z > 0) vf.z += BUILDING_RADIUS;
-		else if (vf.z < 0) vf.z -= BUILDING_RADIUS;*/
-		//std::cout << vf.x << " " << vf.y << " " << vf.z << std::endl;
-
 		glm::vec3 newPos = sphericalToCartesian(alfa, beta, radius);
 		cameraPos = newPos;
 
-		/*const glm::mat4 ChangingViewMatrix = glm::lookAt(vf,
-												glm::vec3(0.0f, 0.0f, 0.0f),
-												glm::vec3(0.0f, 1.0f, 0.0f));*/
 		const glm::mat4 ChangingViewMatrix = glm::lookAt(newPos,
 												glm::vec3(0.0f, 0.0f, 0.0f),
 												glm::vec3(0.0f, 1.0f, 0.0f));
@@ -414,12 +391,6 @@ void MyApp::update(GLFWwindow* win) {
 
 	}
 	else {
-
-		/*glm::quat qy = glm::angleAxis(glm::radians(-alfa2), axis_y);
-		glm::quat qx = glm::angleAxis(glm::radians(beta2), axis_x);
-		glm::quat q1 = qx * initial_position_c2 * glm::inverse(qx);
-		glm::quat q2 = qy * q1 * glm::inverse(qy);
-		glm::vec3 vf = { q2.x, q2.y, q2.z };*/
 
 		glm::vec3 newPos = sphericalToCartesian(alfa2, beta2, radius2);
 		cameraPos = newPos;
@@ -538,7 +509,6 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 
 		alfa += (float)accelaration_x / 10;
 		beta += (float)accelaration_y/10;
-		//float y = radius * glm::cos(glm::radians(beta));
 
 		if (accelaration_x > 0)
 			accelaration_x -= 1;
@@ -667,10 +637,6 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 		//updateTransformationMatrices();
 	}
 	
-}
-
-void MyApp::mouseButtonCallback(GLFWwindow* window, int button, int action,int mods) {
-
 }
 
 /////////////////////////////////////////////////////////////////////////// EXTRA
