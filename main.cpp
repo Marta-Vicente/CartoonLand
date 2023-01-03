@@ -49,7 +49,7 @@ glm::mat4 ModelMatrix(1.0f);
 const glm::mat4 ChangingModelMatrix = ModelMatrix;
 
 enum ShadingMode {
-	cel, phong, silhouette
+	phong = 0, silhouette = 1, cel = 2
 };
 
 enum DoorState {
@@ -296,6 +296,7 @@ void MyApp::createShaderPrograms() {
 	ShaderPhong->addUniform("lightHand");
 	ShaderPhong->addUniform("camPos");
 	ShaderPhong->addUniform("material");
+	ShaderPhong->addUniform("silhouetteMode");
 	ShaderPhong->create();
 
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
@@ -452,6 +453,7 @@ void MyApp::render() {
 			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 			glUniform4f(ShaderPhong->Uniforms["material"].index, meshes[i].material.ambientStrength, meshes[i].material.diffuseStrength, meshes[i].material.specularStrength, meshes[i].material.shineness);
 			glUniform1i(ShaderPhong->Uniforms["lightHand"].index, lightHand);
+			glUniform1i(ShaderPhong->Uniforms["silhouetteMode"].index, silhouette);
 		}
 		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
@@ -462,6 +464,7 @@ void MyApp::render() {
 			glUniform3f(ShaderPhong->Uniforms["camPos"].index, cameraPos.x, cameraPos.y, cameraPos.z);
 			glUniform4f(ShaderPhong->Uniforms["material"].index, meshes[i].material.ambientStrength, meshes[i].material.diffuseStrength, meshes[i].material.specularStrength, meshes[i].material.shineness);
 			glUniform1i(ShaderPhong->Uniforms["lightHand"].index, lightHand);
+			glUniform1i(ShaderPhong->Uniforms["silhouetteMode"].index, phong);
 		}
 		
 		meshes[i].Mesh->draw();

@@ -13,6 +13,7 @@ uniform vec3 lightColor;
 uniform vec3 camPos;
 uniform vec4 material;
 uniform bool lightHand;
+uniform int silhouetteMode;
 
 vec3 ambientLight(float ambientStrenght, vec3 lightColor){
 	return ambientStrenght * lightColor;
@@ -49,8 +50,14 @@ void main(void)
 	float diffuseStrenght = material.y;
 	float specularStrength = material.z;
 	float shineness = material.w;
+	vec3 NexNormal;
 
-	vec3 NexNormal = normalize(exNormal);
+	if (silhouetteMode == 0){
+		NexNormal = normalize(exNormal);
+	}
+	else{
+		NexNormal = normalize(-exNormal);
+	}
 	vec3 lightDir = normalize(lightPos - FragPos);
 	vec3 lightDirHand = normalize(camPos - FragPos);
 
