@@ -200,8 +200,8 @@ void MyApp::createMeshes() {
 	//--------------------------------------------------------------------------
 	
 	meshesNames.push_back("pantheon.obj");
-	colors.push_back({ 0.1f, 0.1f, 0.1f });
-	transformations.push_back(glm::translate(glm::vec3(0.f, 0.1f, 0.f)) * glm::scale(glm::vec3(1.01f, 1.01f, 1.01f)));
+	colors.push_back({ 0.9f, 0.5f, 0.1f });
+	transformations.push_back(glm::translate(glm::vec3(0.f, 0.1f, 0.f)) * glm::scale(glm::vec3(0.99f, 0.99f, 0.99f)));
 	sm.push_back(silhouette);
 	materials.push_back({ 0.5f, 0.9f, 0.5f, 7.f });
 	//--------------------------------------------------------------------------
@@ -475,8 +475,9 @@ void MyApp::render() {
 			ShaderPhong->unbind();
 			glCullFace(GL_BACK);
 		}
-		else if (meshes[i].shadingMode == phong)
+		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->unbind();
+		}
 	}
 
 }
@@ -538,7 +539,7 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 			inDoorArea = true;
 			if (door == closed) door = toOpen;
 		}
-		else inDoorArea = false; //ASSIM N CONSIGO ENTRAR	
+		else inDoorArea = false;	
 
 		if (accelaration_x > 0)
 			accelaration_x -= 1;

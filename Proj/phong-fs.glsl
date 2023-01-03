@@ -13,7 +13,7 @@ uniform vec3 lightColor;
 uniform vec3 camPos;
 uniform vec4 material;
 uniform bool lightHand;
-uniform int silhouetteMode;
+uniform bool silhouetteMode;
 
 vec3 ambientLight(float ambientStrenght, vec3 lightColor){
 	return ambientStrenght * lightColor;
@@ -52,7 +52,7 @@ void main(void)
 	float shineness = material.w;
 	vec3 NexNormal;
 
-	if (silhouetteMode == 0){
+	if (!silhouetteMode){
 		NexNormal = normalize(exNormal);
 	}
 	else{
