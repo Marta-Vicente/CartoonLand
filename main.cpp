@@ -305,7 +305,7 @@ void MyApp::createShaderPrograms() {
 
 void MyApp::updateProjMatrices(float ratio) {
 	ProjectionMatrixOrtho = glm::ortho(-2.f * ratio, 2.f * ratio, -2.0f * ratio, 2.0f* ratio, 1.0f, 15.0f);
-	ProjectionMatrixPerspective = glm::perspective(glm::radians(30.0f), ratio, 1.0f, 30.0f);
+	ProjectionMatrixPerspective = glm::perspective(glm::radians(70.0f), ratio, 1.0f, 100.0f);
 }
 
 void MyApp::createCamera() {
