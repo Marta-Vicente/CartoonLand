@@ -41,7 +41,7 @@ int meshDoor;
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
-const float soundVolume = 0.3f;
+const float soundVolume = 0.5f;
 
 ////////////////////////////////////////////////////////////////////////// MYAPP
 
@@ -105,6 +105,7 @@ private:
 	float min_radius = 0.01f;
 	float max_radius = 60.f;
 	bool inDoorArea = false;
+	bool insideBuilding = false;
 	DoorState door = closed;
 
 	// CAMERA1
@@ -194,14 +195,14 @@ void MyApp::createMeshes() {
 
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.9f, 0.5f, 0.1f });
-	transformations.push_back(glm::translate(glm::vec3(0.f, 0.1f, 0.f)));
+	transformations.push_back(ModelMatrix);
 	sm.push_back(phong);
 	materials.push_back({ 0.5f, 0.9f, 0.3f, 4.f });
 	//--------------------------------------------------------------------------
 	
 	meshesNames.push_back("pantheon.obj");
 	colors.push_back({ 0.9f, 0.5f, 0.1f });
-	transformations.push_back(glm::translate(glm::vec3(0.f, 0.1f, 0.f)) * glm::scale(glm::vec3(0.99f, 0.99f, 0.99f)));
+	transformations.push_back(glm::scale(glm::vec3(0.99f, 0.99f, 0.99f)));
 	sm.push_back(silhouette);
 	materials.push_back({ 0.5f, 0.9f, 0.5f, 7.f });
 	//--------------------------------------------------------------------------
@@ -215,7 +216,7 @@ void MyApp::createMeshes() {
 
 	meshesNames.push_back("ground.obj");
 	colors.push_back({ 0.1f, 0.9f, 0.2f });
-	transformations.push_back(glm::scale(glm::vec3(10.f)));
+	transformations.push_back(glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)));
 	sm.push_back(phong);
 	materials.push_back({ 0.9f, 0.9f, 0.1f, 2.f });
 	//--------------------------------------------------------------------------
@@ -425,16 +426,6 @@ void MyApp::update(GLFWwindow* win) {
 
 void MyApp::render() {
 
-	/*ShaderCel->bind();
-	for (int i = 0; i < meshes.size(); i++) {
-		glUniform3f(ShaderCel->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
-		glUniformMatrix4fv(ModelMatrixIdCel, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
-		meshes[i].Mesh->draw();
-
-	}
-	ShaderCel->unbind();*/
-
-
 	for (int i = 0; i < meshes.size(); i++) {
 		if (meshes[i].shadingMode == cel) {
 			ShaderCel->bind();
@@ -480,6 +471,9 @@ void MyApp::render() {
 		}
 	}
 
+	if (insideBuilding) SoundEngine->setSoundVolume(soundVolume);
+	else SoundEngine->setSoundVolume(0);
+
 }
 
 
@@ -491,6 +485,10 @@ void MyApp::scrollCallback(GLFWwindow * window, double xoffset, double yoffset) 
 		if (radius > max_radius) radius = max_radius;
 		if (!inDoorArea && radius < BUILDING_RADIUS + 3.f)
 			radius = BUILDING_RADIUS + 3.f;
+		if (inDoorArea && radius < BUILDING_RADIUS + 3.f && door != open)
+			radius = BUILDING_RADIUS + 3.f;
+		if (radius < BUILDING_RADIUS) insideBuilding = true;
+		else insideBuilding = false;
 	}
 	else {
 		radius2 -= (float)yoffset * 0.5f;
@@ -498,6 +496,8 @@ void MyApp::scrollCallback(GLFWwindow * window, double xoffset, double yoffset) 
 		if (radius2 > max_radius) radius2 = max_radius;
 		if (!inDoorArea && radius < BUILDING_RADIUS + 3.f)
 			radius = BUILDING_RADIUS + 3.f;
+		if (radius < BUILDING_RADIUS) insideBuilding = true;
+		else insideBuilding = false;
 	}
 }
 
@@ -612,8 +612,8 @@ void MyApp::initCallback(GLFWwindow * win) {
 	createCamera();
 
 	//SOUND
-	/*SoundEngine->play2D("../assets/surrender.mp3", true);
-	SoundEngine->setSoundVolume(soundVolume);*/
+	//SoundEngine->play2D("../assets/Sound/PianoConcerto5.mp3", true);
+	SoundEngine->setSoundVolume(0);
 
 }
 
