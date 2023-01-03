@@ -169,7 +169,7 @@ private:
 	void update(GLFWwindow* win);
 	void updateTransformationMatrices();
 	void processMouseMovement(GLFWwindow* win);
-	void openCloseDoor();
+	void openDoor();
 	//render
 	void render();
 	//window size
@@ -419,9 +419,6 @@ void MyApp::update(GLFWwindow* win) {
 		else
 			Camera2->setProjectionMatrix(ProjectionMatrixOrtho);
 	}
-	if (door == toOpen) {
-		openCloseDoor();
-	}
 }
 
 
@@ -597,7 +594,7 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 	}
 }
 
-void MyApp::openCloseDoor() {
+void MyApp::openDoor() {
 	meshes[meshDoor].transformation = glm::translate(glm::vec3(20.2f, 0.f, 2.f)) * glm::rotate(glm::radians(-120.f), glm::vec3(0.f, 1.f, 0.f));
 	door = open;
 }
@@ -665,6 +662,9 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 	}
 	if (key == GLFW_KEY_L && action == GLFW_PRESS) {
 		lightHand = !lightHand;
+	}
+	if (key == GLFW_KEY_O && action == GLFW_PRESS && door == toOpen) {
+		openDoor();
 	}
 	if (key == GLFW_KEY_LEFT && action == GLFW_REPEAT) {
 		parametric_movement += param_sensitivity;
