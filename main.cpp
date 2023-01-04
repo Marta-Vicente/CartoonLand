@@ -74,6 +74,14 @@ struct Mesh_obj
 	Material material;
 };
 
+struct meshVectors {
+	std::vector<std::string> meshesNames;
+	std::vector<glm::vec3> colors;
+	std::vector<glm::mat4> transformations;
+	std::vector<ShadingMode> sm;
+	std::vector<Material> materials;
+};
+
 glm::vec3 sphericalToCartesian(float alpha, float beta, float radius) {
 	float x = radius * glm::sin(glm::radians(beta)) * glm::cos(glm::radians(alpha));
 	float y = radius * glm::cos(glm::radians(beta));
@@ -153,6 +161,7 @@ private:
 	mgl::ShaderProgram* ShaderCel = nullptr;
 	mgl::ShaderProgram* ShaderPhong = nullptr;
 
+	meshVectors mv;
 	std::vector<Mesh_obj> meshes;
 
 	//Movement var
@@ -162,6 +171,10 @@ private:
 	const float min_param = 0.0f;
 
 	//init
+	void deleteMeshVectors();
+	void createMeshesCel(std::string meshName, glm::vec3 color, glm::mat4 transformation, Material mat);
+	void createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat);
+	void createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat);
 	void createMeshes();
 	void createShaderPrograms();
 	void createCamera();
@@ -183,66 +196,88 @@ private:
 
 ///////////////////////////////////////////////////////////////////////// MESHES
 
+void MyApp::deleteMeshVectors() {
+	mv.meshesNames.clear();
+	mv.colors.clear();
+	mv.transformations.clear();
+	mv.sm.clear();
+	mv.materials.clear();
+}
+
+void MyApp::createMeshesCel(std::string meshName, glm::vec3 color, glm::mat4 transformation, Material mat) {
+	mv.meshesNames.push_back(meshName);
+	mv.colors.push_back(color);
+	mv.transformations.push_back(transformation);
+	mv.sm.push_back(cel);
+	mv.materials.push_back(mat);
+
+	mv.meshesNames.push_back(meshName);
+	mv.colors.push_back({0.1f, 0.1f, 0.1f});
+	mv.transformations.push_back(transformation * glm::scale(glm::vec3(1.02f, 1.02f, 1.02f)));
+	mv.sm.push_back(silhouette);
+	mv.materials.push_back(mat);
+}
+
+void MyApp::createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat) {
+	mv.meshesNames.push_back(meshName);
+	mv.colors.push_back(color);
+	mv.transformations.push_back(transformation);
+	mv.sm.push_back(sm);
+	mv.materials.push_back(mat);
+}
+
+void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat) {
+	//EXTERIOR OF THE BUILDING
+	mv.meshesNames.push_back(meshName);
+	mv.colors.push_back(color);
+	mv.transformations.push_back(transformation);
+	mv.sm.push_back(sm);
+	mv.materials.push_back(mat);
+	
+	//INTERIOR OF THE BUILDING
+	mv.meshesNames.push_back(meshName);
+	mv.colors.push_back(color);
+	mv.transformations.push_back(transformation * glm::scale(glm::vec3(0.99f, 0.99f, 0.99f)));
+	mv.sm.push_back(silhouette);
+	mv.materials.push_back(mat);
+}
+
 void MyApp::createMeshes() {
 
 	std::string mesh_dir = "../assets/";
-
-	std::vector<std::string> meshesNames;
-	std::vector<glm::vec3> colors;
-	std::vector<glm::mat4> transformations;
-	std::vector<ShadingMode> sm;
-	std::vector<Material> materials;	//ambientStrength, diffuseStrength, specularStrength, shineness;
-
-	meshesNames.push_back("pantheon.obj");
-	colors.push_back({ 0.9f, 0.5f, 0.1f });
-	transformations.push_back(ModelMatrix);
-	sm.push_back(phong);
-	materials.push_back({ 0.5f, 0.9f, 0.3f, 4.f });
+	// meshName, color, transformation, shaderMode, material
+	
+	//EXTERIOR OF THE BUILDING
+	createMeshBuilding("pantheon.obj", { 0.9f, 0.5f, 0.1f }, ModelMatrix, phong, { 0.5f, 0.9f, 0.3f, 4.f });
 	//--------------------------------------------------------------------------
 	
-	meshesNames.push_back("pantheon.obj");
-	colors.push_back({ 0.9f, 0.5f, 0.1f });
-	transformations.push_back(glm::scale(glm::vec3(0.99f, 0.99f, 0.99f)));
-	sm.push_back(silhouette);
-	materials.push_back({ 0.5f, 0.9f, 0.5f, 7.f });
+	//SPHERE ON LIGHT POSITION
+	createMeshSolo("light2.obj", { 0.9, 0.9, 0.1 }, glm::translate(light.lightPos), phong, { 0.5f, 0.9f, 0.9f, 7.f });
+	//--------------------------------------------------------------------------
+	
+	//GROUND PLANE
+	createMeshSolo("ground.obj", { 0.1f, 0.9f, 0.2f }, glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)), phong, { 0.9f, 0.9f, 0.1f, 2.f });
+	//--------------------------------------------------------------------------
+	
+	//DOOR
+	createMeshSolo("door.obj", { 0.9f, 0.9f, 0.2f }, glm::translate(glm::vec3(20.2f, 0.f, 2.f)), phong, { 0.5f, 0.9f, 0.6f, 7.f });
+	meshDoor = mv.meshesNames.size() - 1;
 	//--------------------------------------------------------------------------
 
-	meshesNames.push_back("light2.obj");
-	colors.push_back({ 0.9, 0.9, 0.1 });
-	transformations.push_back(glm::translate(light.lightPos));
-	sm.push_back(phong);
-	materials.push_back({ 0.5f, 0.9f, 0.9f, 7.f });
-	//--------------------------------------------------------------------------
-
-	meshesNames.push_back("ground.obj");
-	colors.push_back({ 0.1f, 0.9f, 0.2f });
-	transformations.push_back(glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)));
-	sm.push_back(phong);
-	materials.push_back({ 0.9f, 0.9f, 0.1f, 2.f });
-	//--------------------------------------------------------------------------
-	meshesNames.push_back("door.obj");
-	colors.push_back({ 0.9f, 0.9f, 0.2f });
-	transformations.push_back(glm::translate(glm::vec3(20.2f, 0.f, 2.f)));
-	sm.push_back(phong);
-	materials.push_back({ 0.5f, 0.9f, 0.6f, 7.f });
-	meshDoor = meshesNames.size() - 1;
-	//--------------------------------------------------------------------------
-
-
-	for (int i = 0; i < meshesNames.size(); i++) {
+	for (int i = 0; i < mv.meshesNames.size(); i++) {
 		Mesh_obj meshSingle;
 		meshSingle.Mesh = new mgl::Mesh();
 		meshSingle.Mesh->joinIdenticalVertices();
-		meshSingle.Mesh->create(mesh_dir + meshesNames[i]);
-		meshSingle.color = colors[i];
-		meshSingle.transformation = transformations[i];
-		meshSingle.shadingMode = sm[i];
-		meshSingle.material = materials[i];
+		meshSingle.Mesh->create(mesh_dir + mv.meshesNames[i]);
+		meshSingle.color = mv.colors[i];
+		meshSingle.transformation = mv.transformations[i];
+		meshSingle.shadingMode = mv.sm[i];
+		meshSingle.material = mv.materials[i];
 		meshes.push_back(meshSingle);
 	}
 	//updateTransformationMatrices();
-
-
+	deleteMeshVectors();
+	
 }
 
 
