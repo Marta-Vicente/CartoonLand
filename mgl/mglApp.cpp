@@ -152,6 +152,7 @@ void Engine::setupOpenGL() {
   glEnable(GL_CULL_FACE);
   glCullFace(GL_BACK);
   glFrontFace(GL_CCW);
+  glEnable(GL_TEXTURE_2D);
   glViewport(0, 0, WindowWidth, WindowHeight);
 }
 

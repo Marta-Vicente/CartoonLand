@@ -132,7 +132,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\FreeImage\Dist\x64;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glew\include;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\assimp-3.1.1-win-binaries\include;$(SolutionDir)Dependencies\irrKlang-64bit-1.6.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\stb;$(SolutionDir)Dependencies\FreeImage\Dist\x64;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glew\include;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\assimp-3.1.1-win-binaries\include;$(SolutionDir)Dependencies\irrKlang-64bit-1.6.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -174,7 +174,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\FreeImage\Dist\x64;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glew\include;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\assimp-3.1.1-win-binaries\include;$(SolutionDir)Dependencies\irrKlang-64bit-1.6.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Dependencies\stb;$(SolutionDir)Dependencies\FreeImage\Dist\x64;$(SolutionDir)Dependencies\glm;$(SolutionDir)Dependencies\glew\include;$(SolutionDir)Dependencies\glfw\include;$(SolutionDir)Dependencies\assimp-3.1.1-win-binaries\include;$(SolutionDir)Dependencies\irrKlang-64bit-1.6.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

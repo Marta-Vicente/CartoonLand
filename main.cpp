@@ -1,11 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //
-//  Loading meshes from external files
-//
-//
-//
-// INTRODUCES:
-// MODEL DATA, ASSIMP, mglMesh.hpp
+//  Cartoon Land
 //
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -28,6 +23,8 @@
 
 #include <irrKlang.h>
 #include <FreeImage.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 ////////////////////////////////////////////////////////////////////////// WINDOW
 
@@ -38,15 +35,13 @@ int windowWidth, windowHeight;
 #define BUILDING_RADIUS 20
 int snapNum = 1;
 int meshDoor;
+glm::mat4 ModelMatrix(1.0f);
+const glm::mat4 ChangingModelMatrix = ModelMatrix;
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
 const float soundVolume = 0.5f;
-
-////////////////////////////////////////////////////////////////////////// MYAPP
-
-glm::mat4 ModelMatrix(1.0f);
-const glm::mat4 ChangingModelMatrix = ModelMatrix;
+////////////////////////////////////////////////////////////////////////// ENUMS
 
 enum ShadingMode {
 	phong = 0, silhouette = 1, cel = 2
@@ -55,6 +50,7 @@ enum ShadingMode {
 enum DoorState {
 	closed, open, toOpen
 };
+////////////////////////////////////////////////////////////////////////// STRUCTS
 
 struct Light {
 	glm::vec3 lightPos, lightColor;
@@ -81,6 +77,7 @@ struct meshVectors {
 	std::vector<ShadingMode> sm;
 	std::vector<Material> materials;
 };
+////////////////////////////////////////////////////////////////////////// COORDINATES
 
 glm::vec3 sphericalToCartesian(float alpha, float beta, float radius) {
 	float x = radius * glm::sin(glm::radians(beta)) * glm::cos(glm::radians(alpha));
@@ -89,7 +86,7 @@ glm::vec3 sphericalToCartesian(float alpha, float beta, float radius) {
 
 	return { x, y, z };
 }
-
+////////////////////////////////////////////////////////////////////////// MYAPP
 
 class MyApp : public mgl::App {
 
@@ -104,17 +101,35 @@ public:
 private:
 	const GLuint POSITION = 0, COLOR = 1, UBO_BP = 0;
 
+	// COORDINATES AND AREAS -----------------------------------------
 	glm::vec3 axis_x = { 1.0f, 0.0f, 0.0f };
 	glm::vec3 axis_y = { 0.0f, 1.0f, 0.0f };
 	glm::vec3 axis_z = { 0.0f, 0.0f, 1.0f };
 
-	float minBeta = 80.f;
-	float maxBeta = 88.f;
+	float outsideBeta = 80.f;
 	float min_radius = 0.01f;
 	float max_radius = 60.f;
 	bool inDoorArea = false;
 	bool insideBuilding = false;
 	DoorState door = closed;
+
+	double xpos, ypos = 0;
+	double old_xpos, old_ypos = 0;
+
+	// CAMERAS -------------------------------------------------------
+	mgl::Camera* Camera = nullptr;
+	mgl::Camera* Camera2 = nullptr;
+	GLint ModelMatrixIdCel, ModelMatrixIdPhong;
+
+	//CAMERA TYPES
+	glm::mat4 ProjectionMatrixOrtho = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 1.0f, 15.0f);
+
+	glm::mat4 ProjectionMatrixPerspective = glm::perspective(glm::radians(70.0f), 4.0f / 3.0f, 1.0f, 100.0f);
+
+	glm::mat4 c1_ChangingViewMatrix;
+	glm::mat4 c2_ChangingViewMatrix;
+
+	glm::vec3 cameraPos;
 
 	// CAMERA1
 	float alfa = 10.0f;
@@ -124,6 +139,7 @@ private:
 	int accelaration_y = 0;
 	bool projection_camera1 = true;
 	glm::vec3 initPos1 = sphericalToCartesian(alfa, beta, radius);
+	bool camera1_on = true;
 
 	// CAMERA2
 	float alfa2 = 0.0f;
@@ -134,42 +150,28 @@ private:
 	bool projection_camera2 = true;
 	glm::vec3 initPos2 = sphericalToCartesian(alfa2, beta2, radius2);
 
-	bool camera1_on = true;
-
-	//Camera
-	mgl::Camera* Camera = nullptr;
-	mgl::Camera* Camera2 = nullptr;
-	GLint ModelMatrixIdCel, ModelMatrixIdPhong;
-
-	//CAMERA TYPES
-	glm::mat4 ProjectionMatrixOrtho =
-		glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 1.0f, 15.0f);
-
-	glm::mat4 ProjectionMatrixPerspective =
-		glm::perspective(glm::radians(70.0f), 4.0f / 3.0f, 1.0f, 100.0f);
-
-	glm::mat4 c1_ChangingViewMatrix;
-	glm::mat4 c2_ChangingViewMatrix;
-
-	glm::vec3 cameraPos;
+	//LIGHT -----------------------------------------------------------
 	Light light;
 	bool lightHand = false;
 
-	double xpos, ypos = 0;
-	double old_xpos, old_ypos = 0;
-
+	//SHADERS ---------------------------------------------------------
 	mgl::ShaderProgram* ShaderCel = nullptr;
 	mgl::ShaderProgram* ShaderPhong = nullptr;
 
+	//MESHES ---------------------------------------------------------
 	meshVectors mv;
 	std::vector<Mesh_obj> meshes;
+	
+	//TEXTURES ---------------------------------------------------------
+	GLuint tex1;
 
-	//Movement var
+	//MOVEMENT ---------------------------------------------------------
 	float parametric_movement = 0.0f;
 	const float param_sensitivity = 0.011f;
 	const float max_param = 1.0f;
 	const float min_param = 0.0f;
 
+	//FUNCTIONS ---------------------------------------------------------
 	//init
 	void deleteMeshVectors();
 	void createMeshesCel(std::string meshName, glm::vec3 color, glm::mat4 transformation, Material mat);
@@ -179,16 +181,20 @@ private:
 	void createShaderPrograms();
 	void createCamera();
 	void createLight();
+	void loadTexture(const std::string& filename, GLuint& tex);
+	void createTextures();
 	//update
 	void update(GLFWwindow* win);
 	void updateTransformationMatrices();
+	void exitBuilding();
 	void processMouseMovement(GLFWwindow* win);
 	void openDoor();
+	void sendTexture(GLenum unit, GLuint& tex);
 	//render
 	void render();
 	//window size
 	void updateProjMatrices(float ratio);
-	//
+	//others
 	void snapshot(GLFWwindow* win, int width, int height);
 };
 
@@ -237,7 +243,7 @@ void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 
 	//INTERIOR OF THE BUILDING
 	mv.meshesNames.push_back(meshName);
 	mv.colors.push_back(color);
-	mv.transformations.push_back(transformation * glm::scale(glm::vec3(0.99f, 0.99f, 0.99f)));
+	mv.transformations.push_back(glm::translate(glm::vec3(0.f, 0.2f, 0.f)) * glm::scale(glm::vec3(0.99f, 0.99f, 0.99f)));
 	mv.sm.push_back(silhouette);
 	mv.materials.push_back(mat);
 }
@@ -245,24 +251,72 @@ void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 
 void MyApp::createMeshes() {
 
 	std::string mesh_dir = "../assets/";
-	// meshName, color, transformation, shaderMode, material
+	// MESH: meshName, color, transformation, shaderMode, material
+	//MATERIAL: ambientStrength, diffuseStrength, specularStrength, shineness
 	
 	//EXTERIOR OF THE BUILDING
-	createMeshBuilding("pantheon.obj", { 0.9f, 0.5f, 0.1f }, ModelMatrix, phong, { 0.5f, 0.9f, 0.3f, 4.f });
+	createMeshBuilding("pantheon.obj", {0.9f, 0.5f, 0.1f},
+		ModelMatrix, 
+		phong, { 0.5f, 0.9f, 0.3f, 4.f });
 	//--------------------------------------------------------------------------
 	
 	//SPHERE ON LIGHT POSITION
-	createMeshSolo("light2.obj", { 0.9, 0.9, 0.1 }, glm::translate(light.lightPos), phong, { 0.5f, 0.9f, 0.9f, 7.f });
+	createMeshSolo("light2.obj", { 0.9, 0.9, 0.1 }, 
+		glm::translate(light.lightPos), 
+		phong, { 0.5f, 0.9f, 0.9f, 7.f });
 	//--------------------------------------------------------------------------
 	
 	//GROUND PLANE
-	createMeshSolo("ground.obj", { 0.1f, 0.9f, 0.2f }, glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)), phong, { 0.9f, 0.9f, 0.1f, 2.f });
+	createMeshSolo("ground.obj", { 0.1f, 0.9f, 0.2f }, 
+		glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)), 
+		phong, { 0.9f, 0.9f, 0.1f, 2.f });
 	//--------------------------------------------------------------------------
 	
 	//DOOR
-	createMeshSolo("door.obj", { 0.9f, 0.9f, 0.2f }, glm::translate(glm::vec3(20.2f, 0.f, 2.f)), phong, { 0.5f, 0.9f, 0.6f, 7.f });
+	createMeshSolo("door.obj", { 0.9f, 0.9f, 0.2f }, 
+		glm::translate(glm::vec3(20.2f, 0.f, 2.f)), 
+		phong, { 0.5f, 0.9f, 0.6f, 7.f });
 	meshDoor = mv.meshesNames.size() - 1;
 	//--------------------------------------------------------------------------
+	
+//////STATUES
+
+	//BRONZE STATUE
+	/*createMeshesCel("/Statues/egypt.obj", {0.7, 0.56, 0.24},
+		glm::translate(sphericalToCartesian(30.f, 90.f, 15.f)) * glm::scale(glm::vec3(0.2f)) * glm::rotate(glm::radians(150.f), glm::vec3(0.f, 1.f, 0.f)) * glm::rotate(glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f)),
+		{ 0.5f, 0.9f, 0.1f, 3.f });
+	//--------------------------------------------------------------------------
+
+	//ROMAN STATUE
+	createMeshesCel("/Statues/roman.obj", { 0.9, 0.9, 0.7 }, 
+		glm::translate(sphericalToCartesian(90.f, 75.f, 15.f)), 
+		{ 0.5f, 0.9f, 0.1f, 3.f });
+	//--------------------------------------------------------------------------
+
+	//BRONZE STATUE
+	createMeshesCel("/Statues/bronze.obj", { 0., 0.25, 0.086 }, 
+		glm::translate(sphericalToCartesian(150.f, 90.f, 15.f)) *  glm::scale(glm::vec3(0.3f)) * glm::rotate(glm::radians(210.f), glm::vec3(0.f, 1.f, 0.f)) * glm::rotate(glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f)),
+		{0.5f, 0.9f, 0.1f, 3.f});
+	//--------------------------------------------------------------------------
+	
+	//THINKER STATUE
+	createMeshesCel("/Statues/thinker.obj", { 0.95, 0.89, 0.7 }, 
+		glm::translate(sphericalToCartesian(210.f, 90.f, 15.f)) * glm::rotate(glm::radians(230.f), glm::vec3(0.f, 1.f, 0.f)), 
+		{ 0.5f, 0.9f, 0.1f, 3.f });
+	//--------------------------------------------------------------------------
+	
+	//MARIE THERESE STATUE
+	createMeshesCel("/Statues/theresa.obj", { 0.2, 0.5, 0.35 }, 
+		glm::translate(sphericalToCartesian(270.f, 90.f, 15.f)) * glm::scale(glm::vec3(0.3f)) * glm::rotate(glm::radians(0.f), glm::vec3(1.f, 0.f, 0.f)), 
+		{ 0.5f, 0.9f, 0.1f, 3.f });
+	//--------------------------------------------------------------------------
+	
+	//MARY STATUE
+	createMeshesCel("/Statues/maria.obj", { 0.9, 0.9, 0.9 }, 
+		glm::translate(sphericalToCartesian(330.f, 90.f, 15.f)) *  glm::scale(glm::vec3(0.3f)) * glm::rotate(glm::radians(30.f), glm::vec3(0.f, 1.f, 0.f)) * glm::rotate(glm::radians(0.f), glm::vec3(1.f, 0.f, 0.f)),
+		{0.5f, 0.9f, 0.1f, 3.f});*/
+	//--------------------------------------------------------------------------
+	
 
 	for (int i = 0; i < mv.meshesNames.size(); i++) {
 		Mesh_obj meshSingle;
@@ -333,6 +387,7 @@ void MyApp::createShaderPrograms() {
 	ShaderPhong->addUniform("camPos");
 	ShaderPhong->addUniform("material");
 	ShaderPhong->addUniform("silhouetteMode");
+	ShaderPhong->addUniform("tex1");
 	ShaderPhong->create();
 
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
@@ -362,6 +417,39 @@ void MyApp::createLight() {
 	light.lightPos = {30.f, 40.f, 30.f};
 	light.lightColor = { 0.9, 0.7, 0.9 };
 }
+
+///////////////////////////////////////////////////////////////////////// TEXTURE
+
+void MyApp::loadTexture(const std::string& filename, GLuint& tex) {
+	int width, height, channels;
+	unsigned char* image;
+
+	glGenTextures(1, &tex);
+	glBindTexture(GL_TEXTURE_2D, tex);
+
+	image = stbi_load(filename.c_str(), &width, &height, &channels, 0);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+	stbi_image_free(image);
+}
+
+void MyApp::createTextures() {
+	loadTexture("../assets/grass.png", tex1);
+}
+
+void MyApp::sendTexture(GLenum unit, GLuint& tex) {
+	glActiveTexture(unit);
+	glBindTexture(GL_TEXTURE_2D, tex);
+}
+
 
 /////////////////////////////////////////////////////////////////////////// DRAW
 
@@ -418,6 +506,11 @@ void MyApp::updateTransformationMatrices() {
 	/*for (int i = 0; i < TRANSF_MESHES; i++) {
 		meshes[i].transformation = tTemp[i];
 	}*/
+}
+
+void MyApp::exitBuilding() {
+	alfa = 0.f;
+	radius = 22.f;
 }
 
 void MyApp::update(GLFWwindow* win) {
@@ -483,6 +576,7 @@ void MyApp::render() {
 		}
 		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
+			sendTexture(GL_TEXTURE0, tex1);
 			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 			glUniform3f(ShaderPhong->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
@@ -502,6 +596,7 @@ void MyApp::render() {
 			glCullFace(GL_BACK);
 		}
 		else if (meshes[i].shadingMode == phong) {
+			glBindTexture(GL_TEXTURE_2D, 0);
 			ShaderPhong->unbind();
 		}
 	}
@@ -515,15 +610,24 @@ void MyApp::render() {
 void MyApp::scrollCallback(GLFWwindow * window, double xoffset, double yoffset) {
 
 	if (camera1_on) {
-		float oldRadius;
-		radius -= (float)yoffset * 0.5f;
-		if (radius > max_radius) radius = max_radius;
-		if (!inDoorArea && radius < BUILDING_RADIUS + 3.f)
-			radius = BUILDING_RADIUS + 3.f;
-		if (inDoorArea && radius < BUILDING_RADIUS + 3.f && door != open)
-			radius = BUILDING_RADIUS + 3.f;
-		if (radius < BUILDING_RADIUS) insideBuilding = true;
-		else insideBuilding = false;
+		if (insideBuilding) { 
+			radius = 20.5f;
+		}
+		else {
+			radius -= (float)yoffset * 0.5f;
+			if (radius > max_radius) radius = max_radius;
+
+			if (!inDoorArea && radius < BUILDING_RADIUS + 3.f && !insideBuilding) //don't cross wall
+				radius = BUILDING_RADIUS + 3.f;
+
+			if (inDoorArea && radius < BUILDING_RADIUS + 3.f && door != open && !insideBuilding) //don't cross closed door
+				radius = BUILDING_RADIUS + 3.f;
+
+			if (radius < BUILDING_RADIUS)  insideBuilding = true;
+			else insideBuilding = false;
+		}
+		
+
 	}
 	else {
 		radius2 -= (float)yoffset * 0.5f;
@@ -586,9 +690,7 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 		else if (accelaration_y < 0)
 			accelaration_y += 1;
 
-		if (radius * glm::cos(glm::radians(beta)) < 1.7f && radius > BUILDING_RADIUS)
-			beta = maxBeta;
-		if (radius > BUILDING_RADIUS) beta = minBeta;
+		if (radius > BUILDING_RADIUS) beta = outsideBeta; //outside of the building
 	}
 	else {
 		int state = glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT);
@@ -628,8 +730,6 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 		else if (accelaration_y2 < 0)
 			accelaration_y2 += 1;
 
-		if (radius2 * glm::cos(glm::radians(beta2)) < 1.7f && radius > BUILDING_RADIUS)
-			beta2 = maxBeta;
 	}
 }
 
@@ -645,6 +745,7 @@ void MyApp::initCallback(GLFWwindow * win) {
 	createMeshes();
 	createShaderPrograms(); // after mesh;
 	createCamera();
+	createTextures();
 
 	//SOUND
 	//SoundEngine->play2D("../assets/Sound/PianoConcerto5.mp3", true);
@@ -705,6 +806,8 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 	if (key == GLFW_KEY_O && action == GLFW_PRESS && door == toOpen) {
 		openDoor();
 	}
+	if (key == GLFW_KEY_E && action == GLFW_PRESS && insideBuilding)
+		exitBuilding();
 	if (key == GLFW_KEY_LEFT && action == GLFW_REPEAT) {
 		parametric_movement += param_sensitivity;
 		if (parametric_movement >= max_param) {
@@ -743,6 +846,7 @@ void MyApp::snapshot(GLFWwindow* win, int width, int height) {
 	FreeImage_Save(FIF_BMP, finalImage, c, 0);
 	snapNum++;
 }
+
 /////////////////////////////////////////////////////////////////////////// MAIN
 
 int main(int argc, char* argv[]) {

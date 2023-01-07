@@ -14,6 +14,7 @@ uniform vec3 camPos;
 uniform vec4 material;
 uniform bool lightHand;
 uniform bool silhouetteMode;
+uniform sampler2D tex1;
 
 vec3 ambientLight(float ambientStrenght, vec3 lightColor){
 	return ambientStrenght * lightColor;
@@ -65,8 +66,13 @@ void main(void)
 	vec3 diffuse = diffuseLight(diffuseStrenght, NexNormal, lightColor, lightDir, lightDirHand);
 	vec3 specular = specularLightPhong(specularStrength, lightDir, NexNormal, lightColor, shineness);
 
+	vec4 texel;
+	texel = texture(tex1, exTexcoord);
+	vec4 fi = max(vec4(diffuse, 1.0) * texel + vec4(specular, 1.0), vec4(ambient, 1.0) * texel);
+
 	vec3 color = (ambient + diffuse + specular) * inColor;
 
 	FragmentColor = vec4(color, 1.0); 
+	//FragmentColor = fi; 
 
 }
