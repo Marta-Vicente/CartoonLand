@@ -33,6 +33,7 @@ int windowWidth, windowHeight;
 ////////////////////////////////////////////////////////////////////////// VARIABLES
 
 #define BUILDING_RADIUS 20
+#define NUM_TEXTURES 2
 int snapNum = 1;
 int meshDoor;
 glm::mat4 ModelMatrix(1.0f);
@@ -49,6 +50,10 @@ enum ShadingMode {
 
 enum DoorState {
 	closed, open, toOpen
+};
+
+enum TexMode {
+	noTexture = 0, groundTex = 1, doorTex = 2, buildingTex = 3
 };
 ////////////////////////////////////////////////////////////////////////// STRUCTS
 
@@ -68,6 +73,7 @@ struct Mesh_obj
 	glm::mat4 transformation;
 	ShadingMode shadingMode;
 	Material material;
+	TexMode texMode;
 };
 
 struct meshVectors {
@@ -76,6 +82,7 @@ struct meshVectors {
 	std::vector<glm::mat4> transformations;
 	std::vector<ShadingMode> sm;
 	std::vector<Material> materials;
+	std::vector<TexMode> texMode;
 };
 ////////////////////////////////////////////////////////////////////////// COORDINATES
 
@@ -163,7 +170,7 @@ private:
 	std::vector<Mesh_obj> meshes;
 	
 	//TEXTURES ---------------------------------------------------------
-	GLuint tex1;
+	GLuint tex[NUM_TEXTURES];
 
 	//MOVEMENT ---------------------------------------------------------
 	float parametric_movement = 0.0f;
@@ -175,13 +182,13 @@ private:
 	//init
 	void deleteMeshVectors();
 	void createMeshesCel(std::string meshName, glm::vec3 color, glm::mat4 transformation, Material mat);
-	void createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat);
-	void createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat);
+	void createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat, TexMode texMode);
+	void createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat, TexMode texMode);
 	void createMeshes();
 	void createShaderPrograms();
 	void createCamera();
 	void createLight();
-	void loadTexture(const std::string& filename, GLuint& tex);
+	void loadTexture(const std::string& filename, GLuint tex);
 	void createTextures();
 	//update
 	void update(GLFWwindow* win);
@@ -189,7 +196,7 @@ private:
 	void exitBuilding();
 	void processMouseMovement(GLFWwindow* win);
 	void openDoor();
-	void sendTexture(GLenum unit, GLuint& tex);
+	void sendTexture(GLenum unit, GLuint& tex, GLuint v0, const std::string& filename);
 	//render
 	void render();
 	//window size
@@ -208,6 +215,7 @@ void MyApp::deleteMeshVectors() {
 	mv.transformations.clear();
 	mv.sm.clear();
 	mv.materials.clear();
+	mv.texMode.clear();
 }
 
 void MyApp::createMeshesCel(std::string meshName, glm::vec3 color, glm::mat4 transformation, Material mat) {
@@ -216,29 +224,33 @@ void MyApp::createMeshesCel(std::string meshName, glm::vec3 color, glm::mat4 tra
 	mv.transformations.push_back(transformation);
 	mv.sm.push_back(cel);
 	mv.materials.push_back(mat);
+	mv.texMode.push_back(noTexture);
 
 	mv.meshesNames.push_back(meshName);
 	mv.colors.push_back({0.1f, 0.1f, 0.1f});
 	mv.transformations.push_back(transformation * glm::scale(glm::vec3(1.02f, 1.02f, 1.02f)));
 	mv.sm.push_back(silhouette);
 	mv.materials.push_back(mat);
+	mv.texMode.push_back(noTexture);
 }
 
-void MyApp::createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat) {
+void MyApp::createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat, TexMode texMode) {
 	mv.meshesNames.push_back(meshName);
 	mv.colors.push_back(color);
 	mv.transformations.push_back(transformation);
 	mv.sm.push_back(sm);
 	mv.materials.push_back(mat);
+	mv.texMode.push_back(texMode);
 }
 
-void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat) {
+void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat, TexMode texMode) {
 	//EXTERIOR OF THE BUILDING
 	mv.meshesNames.push_back(meshName);
 	mv.colors.push_back(color);
 	mv.transformations.push_back(transformation);
 	mv.sm.push_back(sm);
 	mv.materials.push_back(mat);
+	mv.texMode.push_back(texMode);
 	
 	//INTERIOR OF THE BUILDING
 	mv.meshesNames.push_back(meshName);
@@ -246,36 +258,37 @@ void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 
 	mv.transformations.push_back(glm::translate(glm::vec3(0.f, 0.2f, 0.f)) * glm::scale(glm::vec3(0.99f, 0.99f, 0.99f)));
 	mv.sm.push_back(silhouette);
 	mv.materials.push_back(mat);
+	mv.texMode.push_back(noTexture);
 }
 
 void MyApp::createMeshes() {
 
 	std::string mesh_dir = "../assets/";
-	// MESH: meshName, color, transformation, shaderMode, material
+	// MESH: meshName, color, transformation, shaderMode, material, texMode
 	//MATERIAL: ambientStrength, diffuseStrength, specularStrength, shineness
 	
 	//EXTERIOR OF THE BUILDING
 	createMeshBuilding("pantheon.obj", {0.9f, 0.5f, 0.1f},
 		ModelMatrix, 
-		phong, { 0.5f, 0.9f, 0.3f, 4.f });
+		phong, { 0.5f, 0.9f, 0.3f, 4.f }, noTexture);
 	//--------------------------------------------------------------------------
 	
 	//SPHERE ON LIGHT POSITION
 	createMeshSolo("light2.obj", { 0.9, 0.9, 0.1 }, 
 		glm::translate(light.lightPos), 
-		phong, { 0.5f, 0.9f, 0.9f, 7.f });
+		phong, { 0.5f, 0.9f, 0.9f, 7.f }, noTexture);
 	//--------------------------------------------------------------------------
 	
 	//GROUND PLANE
 	createMeshSolo("ground.obj", { 0.1f, 0.9f, 0.2f }, 
 		glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)), 
-		phong, { 0.9f, 0.9f, 0.1f, 2.f });
+		phong, { 0.9f, 0.9f, 0.1f, 2.f }, groundTex);
 	//--------------------------------------------------------------------------
 	
 	//DOOR
 	createMeshSolo("door.obj", { 0.9f, 0.9f, 0.2f }, 
 		glm::translate(glm::vec3(20.2f, 0.f, 2.f)), 
-		phong, { 0.5f, 0.9f, 0.6f, 7.f });
+		phong, { 0.5f, 0.8f, 0.7f, 17.f }, doorTex);
 	meshDoor = mv.meshesNames.size() - 1;
 	//--------------------------------------------------------------------------
 	
@@ -327,6 +340,7 @@ void MyApp::createMeshes() {
 		meshSingle.transformation = mv.transformations[i];
 		meshSingle.shadingMode = mv.sm[i];
 		meshSingle.material = mv.materials[i];
+		meshSingle.texMode = mv.texMode[i];
 		meshes.push_back(meshSingle);
 	}
 	//updateTransformationMatrices();
@@ -387,7 +401,9 @@ void MyApp::createShaderPrograms() {
 	ShaderPhong->addUniform("camPos");
 	ShaderPhong->addUniform("material");
 	ShaderPhong->addUniform("silhouetteMode");
+	ShaderPhong->addUniform("texMode");
 	ShaderPhong->addUniform("tex1");
+	ShaderPhong->addUniform("tex2");
 	ShaderPhong->create();
 
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
@@ -420,11 +436,10 @@ void MyApp::createLight() {
 
 ///////////////////////////////////////////////////////////////////////// TEXTURE
 
-void MyApp::loadTexture(const std::string& filename, GLuint& tex) {
+void MyApp::loadTexture(const std::string& filename, GLuint tex) {
 	int width, height, channels;
 	unsigned char* image;
 
-	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
 
 	image = stbi_load(filename.c_str(), &width, &height, &channels, 0);
@@ -432,7 +447,7 @@ void MyApp::loadTexture(const std::string& filename, GLuint& tex) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
@@ -442,12 +457,16 @@ void MyApp::loadTexture(const std::string& filename, GLuint& tex) {
 }
 
 void MyApp::createTextures() {
-	loadTexture("../assets/grass.png", tex1);
+	glGenTextures(NUM_TEXTURES, tex);
+	loadTexture("../assets/Textures/hist.jpg", tex[0]);
+	loadTexture("../assets/Textures/wood.jpg", tex[1]);
 }
 
-void MyApp::sendTexture(GLenum unit, GLuint& tex) {
+void MyApp::sendTexture(GLenum unit, GLuint& tex, GLuint v0, const std::string& filename) {
 	glActiveTexture(unit);
 	glBindTexture(GL_TEXTURE_2D, tex);
+	//glUniform1i(tex, v0);
+	glUniform1i(ShaderPhong->Uniforms[filename].index, v0);
 }
 
 
@@ -576,7 +595,6 @@ void MyApp::render() {
 		}
 		else if (meshes[i].shadingMode == phong) {
 			ShaderPhong->bind();
-			sendTexture(GL_TEXTURE0, tex1);
 			glUniform3f(ShaderPhong->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdPhong, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 			glUniform3f(ShaderPhong->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
@@ -585,6 +603,9 @@ void MyApp::render() {
 			glUniform4f(ShaderPhong->Uniforms["material"].index, meshes[i].material.ambientStrength, meshes[i].material.diffuseStrength, meshes[i].material.specularStrength, meshes[i].material.shineness);
 			glUniform1i(ShaderPhong->Uniforms["lightHand"].index, lightHand);
 			glUniform1i(ShaderPhong->Uniforms["silhouetteMode"].index, phong);
+			glUniform1i(ShaderPhong->Uniforms["texMode"].index, meshes[i].texMode);
+			sendTexture(GL_TEXTURE0, tex[0], 0, "tex1");
+			sendTexture(GL_TEXTURE1, tex[1], 1, "tex2");
 		}
 		
 		meshes[i].Mesh->draw();

@@ -15,6 +15,8 @@ uniform vec4 material;
 uniform bool lightHand;
 uniform bool silhouetteMode;
 uniform sampler2D tex1;
+uniform sampler2D tex2;
+uniform int texMode;
 
 vec3 ambientLight(float ambientStrenght, vec3 lightColor){
 	return ambientStrenght * lightColor;
@@ -52,6 +54,8 @@ void main(void)
 	float specularStrength = material.z;
 	float shineness = material.w;
 	vec3 NexNormal;
+	vec4 texel;
+	vec4 finalColor;
 
 	if (!silhouetteMode){
 		NexNormal = normalize(exNormal);
@@ -66,13 +70,19 @@ void main(void)
 	vec3 diffuse = diffuseLight(diffuseStrenght, NexNormal, lightColor, lightDir, lightDirHand);
 	vec3 specular = specularLightPhong(specularStrength, lightDir, NexNormal, lightColor, shineness);
 
-	vec4 texel;
-	texel = texture(tex1, exTexcoord);
-	vec4 fi = max(vec4(diffuse, 1.0) * texel + vec4(specular, 1.0), vec4(ambient, 1.0) * texel);
-
 	vec3 color = (ambient + diffuse + specular) * inColor;
-
-	FragmentColor = vec4(color, 1.0); 
-	//FragmentColor = fi; 
+	
+	if (texMode == 0)		//NO TEXTURE
+		finalColor = vec4(color, 1.0); 
+	else if (texMode == 1) { //GROUND
+		texel = texture(tex1, exTexcoord);
+		finalColor = max(vec4(diffuse, 1.0) * texel + vec4(specular, 1.0), vec4(ambient, 1.0) * texel);
+	}
+	else if (texMode == 2) { //DOOR
+		texel = texture(tex2, exTexcoord);
+		finalColor = max(vec4(diffuse, 1.0) * texel + vec4(specular, 1.0), vec4(ambient, 1.0) * texel);
+	} 
+	FragmentColor = finalColor;
+	 
 
 }
