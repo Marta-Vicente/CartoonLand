@@ -33,9 +33,11 @@ int windowWidth, windowHeight;
 ////////////////////////////////////////////////////////////////////////// VARIABLES
 
 #define BUILDING_RADIUS 20
-#define NUM_TEXTURES 2
+#define NUM_TEXTURES 3
+
 int snapNum = 1;
 int meshDoor;
+
 glm::mat4 ModelMatrix(1.0f);
 const glm::mat4 ChangingModelMatrix = ModelMatrix;
 ////////////////////////////////////////////////////////////////////////// SOUND
@@ -53,7 +55,7 @@ enum DoorState {
 };
 
 enum TexMode {
-	noTexture = 0, groundTex = 1, doorTex = 2, buildingTex = 3
+	noTexture = 0, groundTex = 1, doorTex = 2, buildingTex = 3, bumpMap = 4
 };
 ////////////////////////////////////////////////////////////////////////// STRUCTS
 
@@ -113,9 +115,6 @@ private:
 	glm::vec3 axis_y = { 0.0f, 1.0f, 0.0f };
 	glm::vec3 axis_z = { 0.0f, 0.0f, 1.0f };
 
-	float outsideBeta = 80.f;
-	float min_radius = 0.01f;
-	float max_radius = 60.f;
 	bool inDoorArea = false;
 	bool insideBuilding = false;
 	DoorState door = closed;
@@ -125,37 +124,25 @@ private:
 
 	// CAMERAS -------------------------------------------------------
 	mgl::Camera* Camera = nullptr;
-	mgl::Camera* Camera2 = nullptr;
 	GLint ModelMatrixIdCel, ModelMatrixIdPhong;
 
 	//CAMERA TYPES
-	glm::mat4 ProjectionMatrixOrtho = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 1.0f, 15.0f);
-
 	glm::mat4 ProjectionMatrixPerspective = glm::perspective(glm::radians(70.0f), 4.0f / 3.0f, 1.0f, 100.0f);
-
 	glm::mat4 c1_ChangingViewMatrix;
 	glm::mat4 c2_ChangingViewMatrix;
 
 	glm::vec3 cameraPos;
-
-	// CAMERA1
+	glm::vec3 lookAtCoord = { 0.f, 0.f, 0.f };
+	
 	float alfa = 10.0f;
-	float beta = 81.0f;
+	float beta = 79.0f;
 	float radius = 50.f;
+	float min_radius = 0.01f;
+	float max_radius = 60.f;
+	float insideRadius = 19.5f;
 	int accelaration_x = 0;
 	int accelaration_y = 0;
-	bool projection_camera1 = true;
 	glm::vec3 initPos1 = sphericalToCartesian(alfa, beta, radius);
-	bool camera1_on = true;
-
-	// CAMERA2
-	float alfa2 = 0.0f;
-	float beta2 = 0.0f;
-	float radius2 = 25.f;
-	int accelaration_x2 = 0;
-	int accelaration_y2 = 0;
-	bool projection_camera2 = true;
-	glm::vec3 initPos2 = sphericalToCartesian(alfa2, beta2, radius2);
 
 	//LIGHT -----------------------------------------------------------
 	Light light;
@@ -173,10 +160,17 @@ private:
 	GLuint tex[NUM_TEXTURES];
 
 	//MOVEMENT ---------------------------------------------------------
-	float parametric_movement = 0.0f;
-	const float param_sensitivity = 0.011f;
+	float parametric_movement_door = 0.0f;
+	float parametric_movement_camera = 0.0f; //1.16
+	float parametric_movement_camera2 = 0.0f; //1.16
+	const float param_sensitivity = 0.01f;
 	const float max_param = 1.0f;
 	const float min_param = 0.0f;
+	bool doorMoving = false;
+	bool cameraMoving = false;
+	bool cameraMoving2 = false;
+	bool cameraMovingOut = false;
+	bool cameraMoving2Out = false;
 
 	//FUNCTIONS ---------------------------------------------------------
 	//init
@@ -191,12 +185,15 @@ private:
 	void loadTexture(const std::string& filename, GLuint tex);
 	void createTextures();
 	//update
+	void checkEnterLeave();
 	void update(GLFWwindow* win);
-	void updateTransformationMatrices();
 	void exitBuilding();
 	void processMouseMovement(GLFWwindow* win);
 	void openDoor();
+	void moveCamera();
+	void enterBuilding();
 	void sendTexture(GLenum unit, GLuint& tex, GLuint v0, const std::string& filename);
+	void sendAllTextures();
 	//render
 	void render();
 	//window size
@@ -245,12 +242,12 @@ void MyApp::createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 tran
 
 void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat, TexMode texMode) {
 	//EXTERIOR OF THE BUILDING
-	mv.meshesNames.push_back(meshName);
+	/*mv.meshesNames.push_back(meshName);
 	mv.colors.push_back(color);
 	mv.transformations.push_back(transformation);
 	mv.sm.push_back(sm);
 	mv.materials.push_back(mat);
-	mv.texMode.push_back(texMode);
+	mv.texMode.push_back(texMode);*/
 	
 	//INTERIOR OF THE BUILDING
 	mv.meshesNames.push_back(meshName);
@@ -268,8 +265,8 @@ void MyApp::createMeshes() {
 	//MATERIAL: ambientStrength, diffuseStrength, specularStrength, shineness
 	
 	//EXTERIOR OF THE BUILDING
-	createMeshBuilding("pantheon.obj", {0.9f, 0.5f, 0.1f},
-		ModelMatrix, 
+	createMeshBuilding("final.obj", {0.99f, 0.98f, 0.73f},
+		ModelMatrix,
 		phong, { 0.5f, 0.9f, 0.3f, 4.f }, noTexture);
 	//--------------------------------------------------------------------------
 	
@@ -280,15 +277,15 @@ void MyApp::createMeshes() {
 	//--------------------------------------------------------------------------
 	
 	//GROUND PLANE
-	createMeshSolo("ground.obj", { 0.1f, 0.9f, 0.2f }, 
+	createMeshSolo("ground.obj", { 0.86f, 0.29f, 0.f }, 
 		glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)), 
-		phong, { 0.9f, 0.9f, 0.1f, 2.f }, groundTex);
+		phong, { 0.9f, 0.9f, 0.1f, 2.f }, noTexture);
 	//--------------------------------------------------------------------------
 	
 	//DOOR
-	createMeshSolo("door.obj", { 0.9f, 0.9f, 0.2f }, 
+	createMeshSolo("door.obj", { 0.56f, 0.18f, 0.02f }, 
 		glm::translate(glm::vec3(20.2f, 0.f, 2.f)), 
-		phong, { 0.5f, 0.8f, 0.7f, 17.f }, doorTex);
+		phong, { 0.5f, 0.8f, 0.7f, 17.f }, bumpMap);
 	meshDoor = mv.meshesNames.size() - 1;
 	//--------------------------------------------------------------------------
 	
@@ -404,6 +401,7 @@ void MyApp::createShaderPrograms() {
 	ShaderPhong->addUniform("texMode");
 	ShaderPhong->addUniform("tex1");
 	ShaderPhong->addUniform("tex2");
+	ShaderPhong->addUniform("tex3");
 	ShaderPhong->create();
 
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
@@ -412,16 +410,14 @@ void MyApp::createShaderPrograms() {
 ///////////////////////////////////////////////////////////////////////// CAMERA
 
 void MyApp::updateProjMatrices(float ratio) {
-	ProjectionMatrixOrtho = glm::ortho(-2.f * ratio, 2.f * ratio, -2.0f * ratio, 2.0f* ratio, 1.0f, 15.0f);
 	ProjectionMatrixPerspective = glm::perspective(glm::radians(70.0f), ratio, 1.0f, 100.0f);
 }
 
 void MyApp::createCamera() {
 
-	Camera2 = new mgl::Camera(UBO_BP);
 	Camera = new mgl::Camera(UBO_BP);
 	Camera->setViewMatrix(glm::lookAt({ initPos1.x,initPos1.y,initPos1.z },
-		glm::vec3(0.0f, 0.0f, 0.0f),
+		lookAtCoord,
 		glm::vec3(0.0f, 1.0f, 0.0f)));
 	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 
@@ -440,6 +436,7 @@ void MyApp::loadTexture(const std::string& filename, GLuint tex) {
 	int width, height, channels;
 	unsigned char* image;
 
+	stbi_set_flip_vertically_on_load(true);
 	glBindTexture(GL_TEXTURE_2D, tex);
 
 	image = stbi_load(filename.c_str(), &width, &height, &channels, 0);
@@ -458,8 +455,13 @@ void MyApp::loadTexture(const std::string& filename, GLuint tex) {
 
 void MyApp::createTextures() {
 	glGenTextures(NUM_TEXTURES, tex);
-	loadTexture("../assets/Textures/hist.jpg", tex[0]);
-	loadTexture("../assets/Textures/wood.jpg", tex[1]);
+
+	const std::string texFiles[NUM_TEXTURES] = { "../assets/Textures/hist.jpg",  "../assets/Textures/wood.jpg", 
+		"../assets/Textures/Bumps/Google/point.jpg" };
+
+	for (int i = 0; i < NUM_TEXTURES; i++) {
+		loadTexture(texFiles[i], tex[i]);
+	}
 }
 
 void MyApp::sendTexture(GLenum unit, GLuint& tex, GLuint v0, const std::string& filename) {
@@ -469,110 +471,126 @@ void MyApp::sendTexture(GLenum unit, GLuint& tex, GLuint v0, const std::string& 
 	glUniform1i(ShaderPhong->Uniforms[filename].index, v0);
 }
 
+void MyApp::sendAllTextures() {
+	GLenum g = GL_TEXTURE0;
+	for (int i = 0; i < NUM_TEXTURES; i++) {
+		const std::string& t = "tex" + std::to_string(i + 1);
+		sendTexture(g++, tex[i], i, t);
+	}
+}
 
-/////////////////////////////////////////////////////////////////////////// DRAW
 
-void MyApp::updateTransformationMatrices() {
-	std::vector<glm::mat4> tTemp;
 
-	glm::mat4 M;
-	glm::mat4 rotationBetweenPlanes = glm::rotate(glm::radians(parametric_movement * 90.f), glm::vec3(1.f, 0.f, 0.f));
+/////////////////////////////////////////////////////////////////////////// UPDATE
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3((-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), (0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f));
-	tTemp.push_back(M);
+void MyApp::openDoor() {
+	parametric_movement_door += param_sensitivity;
+	if (parametric_movement_door > 1) parametric_movement_door = 1;
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3(0, (-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * 45.f), glm::vec3(0.f, 1.f, 0.f));
-	tTemp.push_back(M);
+	meshes[meshDoor].transformation = glm::translate(glm::vec3(20.2f, 0.f, 2.f)) *
+		glm::rotate(glm::radians(-120.f * parametric_movement_door), glm::vec3(0.f, 1.f, 0.f));
+}
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3(-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
-	tTemp.push_back(M);
+void MyApp::moveCamera() {
+	parametric_movement_camera += param_sensitivity;
+	if (parametric_movement_camera > 1) parametric_movement_camera = 1;
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3(-0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, -0.9f * glm::cos(glm::radians(45.f)) * parametric_movement, 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f))
-		* glm::rotate(glm::radians(parametric_movement * 180.f), glm::vec3(1.f, 0.f, 0.f));
-	tTemp.push_back(M);
+	float oldAlfa = alfa;
+	alfa = oldAlfa * (1 - parametric_movement_camera) + 1.6f * (parametric_movement_camera);
+}
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3((0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), (-0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * -45.f), glm::vec3(0.f, 1.f, 0.f))
-		* glm::translate(glm::vec3(0.f, 0.f, -0.45f * parametric_movement));
-	tTemp.push_back(M);
+void MyApp::enterBuilding() {
+	parametric_movement_camera2 += param_sensitivity;
+	if (parametric_movement_camera2 > 1) parametric_movement_camera2 = 1;
 
-	M = ChangingModelMatrix
-		* glm::translate(glm::vec3((0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), (0.45f * glm::cos(glm::radians(45.f)) * parametric_movement), 0))
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f))
-		* glm::translate(glm::vec3(0.45f * parametric_movement, 0.f, 0.f));
-	tTemp.push_back(M);
-
-	M = ChangingModelMatrix
-		* rotationBetweenPlanes
-		* glm::rotate(glm::radians(parametric_movement * 135.f), glm::vec3(0.f, 1.f, 0.f));
-	tTemp.push_back(M);
-
-	/*for (int i = 0; i < TRANSF_MESHES; i++) {
-		meshes[i].transformation = tTemp[i];
-	}*/
+	float oldRadius = radius;
+	radius = oldRadius * (1 - parametric_movement_camera2) + insideRadius * (parametric_movement_camera2);
 }
 
 void MyApp::exitBuilding() {
-	alfa = 0.f;
-	radius = 22.f;
+	parametric_movement_camera2 += param_sensitivity;
+	if (parametric_movement_camera2 > 1) parametric_movement_camera2 = 1;
+
+	float oldRadius = radius;
+	radius = oldRadius * (1 - parametric_movement_camera2) + 25.f * (parametric_movement_camera2);
+}
+
+void MyApp::checkEnterLeave() {
+	if (radius <= BUILDING_RADIUS)  insideBuilding = true;
+	else insideBuilding = false;
+
+	//OPEN DOOR
+	if (parametric_movement_door < 1 && doorMoving)
+		openDoor();
+	else if (parametric_movement_door >= 1 && doorMoving) {
+		doorMoving = false;
+		door = open;
+		cameraMoving = true;
+	}
+
+	//GO TO FRONT OF THE DOOR
+	if (parametric_movement_camera < 1 && cameraMoving)
+		moveCamera();
+	else if (parametric_movement_camera >= 1 && cameraMoving) {
+		cameraMoving = false;
+		cameraMoving2 = true;
+		parametric_movement_camera = 0.f;
+	}
+
+	//ENTER BUILDING
+	if (parametric_movement_camera2 < 1 && cameraMoving2)
+		enterBuilding();
+	else if (parametric_movement_camera2 >= 1 && cameraMoving2) {
+		cameraMoving2 = false;
+		parametric_movement_camera2 = 0.f;
+	}
+
+	//GO TO FRONT OF THE DOOR
+	if (parametric_movement_camera < 1 && cameraMovingOut) {
+		moveCamera();
+	}
+	else if (parametric_movement_camera >= 1 && cameraMovingOut) {
+		cameraMovingOut = false;
+		cameraMoving2Out = true;
+		parametric_movement_camera = 0.f;
+	}
+
+	//LEAVE BUILDING
+	if (parametric_movement_camera2 < 1 && cameraMoving2Out) {
+		exitBuilding();
+	}
+	else if (parametric_movement_camera2 >= 1 && cameraMoving2Out) {
+		cameraMoving2Out = false;
+		parametric_movement_camera2 = 0.f;
+	}
 }
 
 void MyApp::update(GLFWwindow* win) {
 	//INPUT
 	processMouseMovement(win);
 
+	checkEnterLeave();
+
 	//CAMERAS
-	if (camera1_on) {
+	glm::vec3 newPos = sphericalToCartesian(alfa, beta, radius);
+	cameraPos = newPos;
 
-		glm::vec3 newPos = sphericalToCartesian(alfa, beta, radius);
-		cameraPos = newPos;
+	const glm::mat4 ChangingViewMatrix = glm::lookAt(newPos,
+											lookAtCoord,
+											glm::vec3(0.0f, 1.0f, 0.0f));
 
-		const glm::mat4 ChangingViewMatrix = glm::lookAt(newPos,
-												glm::vec3(0.0f, 0.0f, 0.0f),
-												glm::vec3(0.0f, 1.0f, 0.0f));
+	Camera->setViewMatrix(ChangingViewMatrix);
+	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 
-		Camera->setViewMatrix(ChangingViewMatrix);
-		if (projection_camera1)
-			Camera->setProjectionMatrix(ProjectionMatrixPerspective);
-		else
-			Camera->setProjectionMatrix(ProjectionMatrixOrtho);
 
-	}
-	else {
-
-		glm::vec3 newPos = sphericalToCartesian(alfa2, beta2, radius2);
-		cameraPos = newPos;
-
-		const glm::mat4 ChangingViewMatrix =
-			glm::lookAt(newPos, glm::vec3(0.0f, 0.0f, 0.0f),
-				glm::vec3(0.0f, 1.0f, 0.0f));
-
-		Camera2->setViewMatrix(ChangingViewMatrix);
-		if (projection_camera2)
-			Camera2->setProjectionMatrix(ProjectionMatrixPerspective);
-		else
-			Camera2->setProjectionMatrix(ProjectionMatrixOrtho);
-	}
+	//SOUND
+	if (insideBuilding) SoundEngine->setSoundVolume(soundVolume);
+	else SoundEngine->setSoundVolume(0);
 }
 
+/////////////////////////////////////////////////////////////////////////// DRAW
 
 void MyApp::render() {
-
 	for (int i = 0; i < meshes.size(); i++) {
 		if (meshes[i].shadingMode == cel) {
 			ShaderCel->bind();
@@ -604,8 +622,7 @@ void MyApp::render() {
 			glUniform1i(ShaderPhong->Uniforms["lightHand"].index, lightHand);
 			glUniform1i(ShaderPhong->Uniforms["silhouetteMode"].index, phong);
 			glUniform1i(ShaderPhong->Uniforms["texMode"].index, meshes[i].texMode);
-			sendTexture(GL_TEXTURE0, tex[0], 0, "tex1");
-			sendTexture(GL_TEXTURE1, tex[1], 1, "tex2");
+			sendAllTextures();
 		}
 		
 		meshes[i].Mesh->draw();
@@ -622,141 +639,52 @@ void MyApp::render() {
 		}
 	}
 
-	if (insideBuilding) SoundEngine->setSoundVolume(soundVolume);
-	else SoundEngine->setSoundVolume(0);
-
-}
-
-
-void MyApp::scrollCallback(GLFWwindow * window, double xoffset, double yoffset) {
-
-	if (camera1_on) {
-		if (insideBuilding) { 
-			radius = 20.5f;
-		}
-		else {
-			radius -= (float)yoffset * 0.5f;
-			if (radius > max_radius) radius = max_radius;
-
-			if (!inDoorArea && radius < BUILDING_RADIUS + 3.f && !insideBuilding) //don't cross wall
-				radius = BUILDING_RADIUS + 3.f;
-
-			if (inDoorArea && radius < BUILDING_RADIUS + 3.f && door != open && !insideBuilding) //don't cross closed door
-				radius = BUILDING_RADIUS + 3.f;
-
-			if (radius < BUILDING_RADIUS)  insideBuilding = true;
-			else insideBuilding = false;
-		}
-		
-
-	}
-	else {
-		radius2 -= (float)yoffset * 0.5f;
-		if (radius2 < min_radius) radius2 = min_radius;
-		if (radius2 > max_radius) radius2 = max_radius;
-		if (!inDoorArea && radius < BUILDING_RADIUS + 3.f)
-			radius = BUILDING_RADIUS + 3.f;
-		if (radius < BUILDING_RADIUS) insideBuilding = true;
-		else insideBuilding = false;
-	}
 }
 
 void MyApp::processMouseMovement(GLFWwindow * win) {
 
 	glfwGetCursorPos(win, &xpos, &ypos);
-	double scrollX = 0; double scrollY = 0;
 
-	if (camera1_on) {
-		int state = glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT);
+	int state = glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT);
 
-		if (state == GLFW_PRESS) {
-			accelaration_x = 0;
-			accelaration_y = 0;
-			double diffx = xpos - old_xpos;
-			double diffy = ypos - old_ypos;
+	if (state == GLFW_PRESS) {
+		accelaration_x = 0;
+		accelaration_y = 0;
+		double diffx = xpos - old_xpos;
+		double diffy = ypos - old_ypos;
 
-			alfa += (float)diffx * 0.1f;
-			accelaration_x += (int)diffx;
+		alfa += (float)diffx * 0.1f;
+		accelaration_x += (int)diffx;
 
-			beta -= (float)diffy * 0.1f;
-			accelaration_y -= (int)diffy;
-		}
-		// So we dont overflow it
-		if (alfa >= 360.0f || alfa <= -360.0f) {
-			alfa = 0.0f;
-		}
-		if (beta >= 360.0f || beta <= -360.0f) {
-			beta = 0.0f;
-		}
-
-		old_xpos = xpos;
-		old_ypos = ypos;
-
-		alfa += (float)accelaration_x / 10;
-		beta += (float)accelaration_y/10;
-
-		if (-6 < alfa && alfa < 7 && 18 < radius && radius < 30) { 
-			inDoorArea = true;
-			if (door == closed) door = toOpen;
-		}
-		else inDoorArea = false;	
-
-		if (accelaration_x > 0)
-			accelaration_x -= 1;
-		else if (accelaration_x < 0)
-			accelaration_x += 1;
-
-		if (accelaration_y > 0)
-			accelaration_y -= 1;
-		else if (accelaration_y < 0)
-			accelaration_y += 1;
-
-		if (radius > BUILDING_RADIUS) beta = outsideBeta; //outside of the building
+		lookAtCoord.y -= (float)diffy * 0.1f;
+		accelaration_y -= (int)diffy;
 	}
-	else {
-		int state = glfwGetMouseButton(win, GLFW_MOUSE_BUTTON_LEFT);
-
-		if (state == GLFW_PRESS) {
-			accelaration_x2 = 0;
-			accelaration_y2 = 0;
-			double diffx = xpos - old_xpos;
-			double diffy = ypos - old_ypos;
-
-			alfa2 += (float)diffx * 0.1f;
-			accelaration_x2 += (int)diffx;
-
-			beta2 -= (float)diffy * 0.1f;
-			accelaration_y2 -= (int)diffy;
-		}
-		// So we dont overflow it
-		if (alfa2 >= 360.0f || alfa2 <= -360.0f) {
-			alfa2 = 0.0f;
-		}
-		if (beta2 >= 360.0f || beta2 <= -360.0f) {
-			beta2 = 0.0f;
-		}
-		old_xpos = xpos;
-		old_ypos = ypos;
-
-		alfa2 += (float)accelaration_x2/10;
-		beta2 += (float)accelaration_y2/10;
-
-		if (accelaration_x2 > 0)
-			accelaration_x2 -= 1;
-		else if (accelaration_x2 < 0)
-			accelaration_x2 += 1;
-
-		if (accelaration_y2 > 0)
-			accelaration_y2 -= 1;
-		else if (accelaration_y2 < 0)
-			accelaration_y2 += 1;
-
+	// So we dont overflow it
+	if (alfa >= 360.0f || alfa <= -360.0f) {
+		alfa = 0.0f;
 	}
-}
 
-void MyApp::openDoor() {
-	meshes[meshDoor].transformation = glm::translate(glm::vec3(20.2f, 0.f, 2.f)) * glm::rotate(glm::radians(-120.f), glm::vec3(0.f, 1.f, 0.f));
-	door = open;
+	old_xpos = xpos;
+	old_ypos = ypos;
+
+	alfa += (float)accelaration_x / 10;
+	lookAtCoord.y += (float)accelaration_y / 10;
+
+	if (-6 < alfa && alfa < 7 && 18 < radius && radius < 30) { 
+		inDoorArea = true;
+		if (door == closed) door = toOpen;
+	}
+	else inDoorArea = false;	
+
+	if (accelaration_x > 0)
+		accelaration_x -= 1;
+	else if (accelaration_x < 0)
+		accelaration_x += 1;
+
+	if (accelaration_y > 0)
+		accelaration_y -= 1;
+	else if (accelaration_y < 0)
+		accelaration_y += 1;
 }
 
 ////////////////////////////////////////////////////////////////////// CALLBACKS
@@ -806,44 +734,41 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 		snapshot(window, windowWidth, windowHeight);
 	}
-	if (key == GLFW_KEY_P && action == GLFW_PRESS) {
-		if (camera1_on)
-			projection_camera1 = !projection_camera1;
-		else
-			projection_camera2 = !projection_camera2;
-	}
-	if (key == GLFW_KEY_C && action == GLFW_PRESS) {
-		camera1_on = !camera1_on;
-		if (camera1_on) {
-			Camera->Update(UBO_BP);
-		}
-		else {
-			Camera2->Update(UBO_BP);
-		}
-	}
 	if (key == GLFW_KEY_L && action == GLFW_PRESS) {
 		lightHand = !lightHand;
 	}
 	if (key == GLFW_KEY_O && action == GLFW_PRESS && door == toOpen) {
+		doorMoving = true;
 		openDoor();
 	}
-	if (key == GLFW_KEY_E && action == GLFW_PRESS && insideBuilding)
-		exitBuilding();
-	if (key == GLFW_KEY_LEFT && action == GLFW_REPEAT) {
-		parametric_movement += param_sensitivity;
-		if (parametric_movement >= max_param) {
-			parametric_movement = max_param;
-		}
-		//updateTransformationMatrices();
+	if (key == GLFW_KEY_O && action == GLFW_PRESS && door == open) {
+		cameraMoving = true;
+		moveCamera();
 	}
-	if (key == GLFW_KEY_RIGHT && action == GLFW_REPEAT) {
-		parametric_movement -= param_sensitivity;
-		if (parametric_movement <= min_param) {
-			parametric_movement = min_param;
-		}
-		//updateTransformationMatrices();
+	if (key == GLFW_KEY_E && action == GLFW_PRESS && insideBuilding) {
+		moveCamera();
+		cameraMovingOut = true;
 	}
 	
+}
+
+void MyApp::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+
+	if (insideBuilding) {
+		radius = insideRadius;
+	}
+	else {
+		radius -= (float)yoffset * 0.5f;
+		if (radius > max_radius) radius = max_radius;
+
+		if (!inDoorArea && radius < BUILDING_RADIUS + 3.f && !insideBuilding) //don't cross wall
+			radius = BUILDING_RADIUS + 3.f;
+
+		if (inDoorArea && radius < BUILDING_RADIUS + 3.f && door != open && !insideBuilding) //don't cross closed door
+			radius = BUILDING_RADIUS + 3.f;
+
+	}
+
 }
 
 /////////////////////////////////////////////////////////////////////////// EXTRA
