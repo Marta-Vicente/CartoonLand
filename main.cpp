@@ -43,6 +43,7 @@ const glm::mat4 ChangingModelMatrix = ModelMatrix;
 ////////////////////////////////////////////////////////////////////////// SOUND
 
 irrklang::ISoundEngine* SoundEngine = irrklang::createIrrKlangDevice();
+irrklang::ISoundEngine* SoundEngineDoor = irrklang::createIrrKlangDevice();
 const float soundVolume = 0.5f;
 ////////////////////////////////////////////////////////////////////////// ENUMS
 
@@ -55,7 +56,7 @@ enum DoorState {
 };
 
 enum TexMode {
-	noTexture = 0, groundTex = 1, doorTex = 2, buildingTex = 3, bumpMap = 4
+	noTexture = 0, buildingTex = 1, doorTex = 2, bumpMap = 3
 };
 ////////////////////////////////////////////////////////////////////////// STRUCTS
 
@@ -127,17 +128,18 @@ private:
 	GLint ModelMatrixIdCel, ModelMatrixIdPhong;
 
 	//CAMERA TYPES
-	glm::mat4 ProjectionMatrixPerspective = glm::perspective(glm::radians(70.0f), 4.0f / 3.0f, 1.0f, 100.0f);
+	float fovy = glm::radians(70.0f);
+	glm::mat4 ProjectionMatrixPerspective = glm::perspective(fovy, 4.0f / 3.0f, 1.0f, 100.0f);
 	glm::mat4 c1_ChangingViewMatrix;
 	glm::mat4 c2_ChangingViewMatrix;
 
 	glm::vec3 cameraPos;
-	glm::vec3 lookAtCoord = { 0.f, 0.f, 0.f };
-	
+	float lookAtCoordY = 0.f;
+	float lookAtCoordYMin = 0.f;
+	float lookAtCoordYMax = 12.8f;
 	float alfa = 10.0f;
 	float beta = 79.0f;
 	float radius = 50.f;
-	float min_radius = 0.01f;
 	float max_radius = 60.f;
 	float insideRadius = 19.5f;
 	int accelaration_x = 0;
@@ -179,6 +181,8 @@ private:
 	void createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat, TexMode texMode);
 	void createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat, TexMode texMode);
 	void createMeshes();
+	void createShaderPhongProgram();
+	void createShaderCelProgram();
 	void createShaderPrograms();
 	void createCamera();
 	void createLight();
@@ -242,12 +246,12 @@ void MyApp::createMeshSolo(std::string meshName, glm::vec3 color, glm::mat4 tran
 
 void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 transformation, ShadingMode sm, Material mat, TexMode texMode) {
 	//EXTERIOR OF THE BUILDING
-	/*mv.meshesNames.push_back(meshName);
+	mv.meshesNames.push_back(meshName);
 	mv.colors.push_back(color);
 	mv.transformations.push_back(transformation);
 	mv.sm.push_back(sm);
 	mv.materials.push_back(mat);
-	mv.texMode.push_back(texMode);*/
+	mv.texMode.push_back(texMode);
 	
 	//INTERIOR OF THE BUILDING
 	mv.meshesNames.push_back(meshName);
@@ -260,14 +264,14 @@ void MyApp::createMeshBuilding(std::string meshName, glm::vec3 color, glm::mat4 
 
 void MyApp::createMeshes() {
 
-	std::string mesh_dir = "../assets/";
+	std::string mesh_dir = "../assets/Meshes/";
 	// MESH: meshName, color, transformation, shaderMode, material, texMode
 	//MATERIAL: ambientStrength, diffuseStrength, specularStrength, shineness
 	
 	//EXTERIOR OF THE BUILDING
-	createMeshBuilding("final.obj", {0.99f, 0.98f, 0.73f},
+	createMeshBuilding("pantheonSmooth.obj", {0.9f, 0.9f, 0.9f},
 		ModelMatrix,
-		phong, { 0.5f, 0.9f, 0.3f, 4.f }, noTexture);
+		phong, { 0.5f, 0.9f, 0.2f, 7.f }, noTexture);
 	//--------------------------------------------------------------------------
 	
 	//SPHERE ON LIGHT POSITION
@@ -277,28 +281,34 @@ void MyApp::createMeshes() {
 	//--------------------------------------------------------------------------
 	
 	//GROUND PLANE
-	createMeshSolo("ground.obj", { 0.86f, 0.29f, 0.f }, 
+	createMeshSolo("ground.obj", { 0.022f, 0.64f, 0.f }, 
 		glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)), 
-		phong, { 0.9f, 0.9f, 0.1f, 2.f }, noTexture);
+		phong, { 0.7f, 0.7f, 0.f, 2.f }, noTexture);
+	//--------------------------------------------------------------------------
+	
+	//LANE
+	createMeshSolo("ground.obj", { 0.775f, 0.288f, 0.f }, 
+		glm::translate(glm::vec3(60.f, -0.05f, 0.55f)) * glm::scale(glm::vec3(1.f, 1.f, 0.05f)), 
+		phong, { 0.7f, 0.7f, 0.1f, 2.f }, bumpMap);
 	//--------------------------------------------------------------------------
 	
 	//DOOR
-	createMeshSolo("door.obj", { 0.56f, 0.18f, 0.02f }, 
+	createMeshSolo("door.obj", { 0.f, 0.f, 1.f }, 
 		glm::translate(glm::vec3(20.2f, 0.f, 2.f)), 
-		phong, { 0.5f, 0.8f, 0.7f, 17.f }, bumpMap);
+		phong, { 0.5f, 0.9f, 0.8f, 17.f }, doorTex);
 	meshDoor = mv.meshesNames.size() - 1;
 	//--------------------------------------------------------------------------
 	
 //////STATUES
 
-	//BRONZE STATUE
+	//EGYPTIAN STATUE
 	/*createMeshesCel("/Statues/egypt.obj", {0.7, 0.56, 0.24},
-		glm::translate(sphericalToCartesian(30.f, 90.f, 15.f)) * glm::scale(glm::vec3(0.2f)) * glm::rotate(glm::radians(150.f), glm::vec3(0.f, 1.f, 0.f)) * glm::rotate(glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f)),
+		glm::translate(sphericalToCartesian(30.f, 93.f, 15.f)) * glm::scale(glm::vec3(0.18f)) * glm::rotate(glm::radians(150.f), glm::vec3(0.f, 1.f, 0.f)) * glm::rotate(glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f)),
 		{ 0.5f, 0.9f, 0.1f, 3.f });
 	//--------------------------------------------------------------------------
 
 	//ROMAN STATUE
-	createMeshesCel("/Statues/roman.obj", { 0.9, 0.9, 0.7 }, 
+	createMeshesCel("/Statues/roman.obj", {0.9, 0.9, 0.7},
 		glm::translate(sphericalToCartesian(90.f, 75.f, 15.f)), 
 		{ 0.5f, 0.9f, 0.1f, 3.f });
 	//--------------------------------------------------------------------------
@@ -311,19 +321,19 @@ void MyApp::createMeshes() {
 	
 	//THINKER STATUE
 	createMeshesCel("/Statues/thinker.obj", { 0.95, 0.89, 0.7 }, 
-		glm::translate(sphericalToCartesian(210.f, 90.f, 15.f)) * glm::rotate(glm::radians(230.f), glm::vec3(0.f, 1.f, 0.f)), 
+		glm::translate(sphericalToCartesian(210.f, 88.5f, 15.f)) * glm::rotate(glm::radians(230.f), glm::vec3(0.f, 1.f, 0.f)) * glm::scale(glm::vec3(0.8f)),
 		{ 0.5f, 0.9f, 0.1f, 3.f });
 	//--------------------------------------------------------------------------
 	
 	//MARIE THERESE STATUE
-	createMeshesCel("/Statues/theresa.obj", { 0.2, 0.5, 0.35 }, 
-		glm::translate(sphericalToCartesian(270.f, 90.f, 15.f)) * glm::scale(glm::vec3(0.3f)) * glm::rotate(glm::radians(0.f), glm::vec3(1.f, 0.f, 0.f)), 
+	createMeshesCel("/Statues/theresa.obj", {0.2, 0.5, 0.35},
+		glm::translate(sphericalToCartesian(270.f, 90.f, 15.f)) * glm::scale(glm::vec3(0.4f)), 
 		{ 0.5f, 0.9f, 0.1f, 3.f });
 	//--------------------------------------------------------------------------
 	
 	//MARY STATUE
-	createMeshesCel("/Statues/maria.obj", { 0.9, 0.9, 0.9 }, 
-		glm::translate(sphericalToCartesian(330.f, 90.f, 15.f)) *  glm::scale(glm::vec3(0.3f)) * glm::rotate(glm::radians(30.f), glm::vec3(0.f, 1.f, 0.f)) * glm::rotate(glm::radians(0.f), glm::vec3(1.f, 0.f, 0.f)),
+	createMeshesCel("/Statues/maria.obj", {0.9, 0.9, 0.9},
+		glm::translate(sphericalToCartesian(330.f, 89.f, 15.f)) *  glm::scale(glm::vec3(0.2f)) * glm::rotate(glm::radians(30.f), glm::vec3(0.f, 1.f, 0.f)),
 		{0.5f, 0.9f, 0.1f, 3.f});*/
 	//--------------------------------------------------------------------------
 	
@@ -340,7 +350,7 @@ void MyApp::createMeshes() {
 		meshSingle.texMode = mv.texMode[i];
 		meshes.push_back(meshSingle);
 	}
-	//updateTransformationMatrices();
+	
 	deleteMeshVectors();
 	
 }
@@ -348,7 +358,7 @@ void MyApp::createMeshes() {
 
 ///////////////////////////////////////////////////////////////////////// SHADER
 
-void MyApp::createShaderPrograms() {
+void MyApp::createShaderCelProgram() {
 	ShaderCel = new mgl::ShaderProgram();
 	ShaderCel->addShader(GL_VERTEX_SHADER, "cel-vs.glsl");
 	ShaderCel->addShader(GL_FRAGMENT_SHADER, "cel-fs.glsl");
@@ -368,12 +378,12 @@ void MyApp::createShaderPrograms() {
 	ShaderCel->addUniformBlock(mgl::CAMERA_BLOCK, UBO_BP);
 	ShaderCel->addUniform(mgl::COLOR_ATTRIBUTE);
 	ShaderCel->addUniform("lightPos");
-	ShaderCel->addUniform("lightHand");
-	ShaderCel->addUniform("camPos");
 	ShaderCel->create();
 
 	ModelMatrixIdCel = ShaderCel->Uniforms[mgl::MODEL_MATRIX].index;
-	//----------------------------------------------------------------------------
+}
+
+void MyApp::createShaderPhongProgram() {
 	ShaderPhong = new mgl::ShaderProgram();
 	ShaderPhong->addShader(GL_VERTEX_SHADER, "phong-vs.glsl");
 	ShaderPhong->addShader(GL_FRAGMENT_SHADER, "phong-fs.glsl");
@@ -407,17 +417,24 @@ void MyApp::createShaderPrograms() {
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
 }
 
+void MyApp::createShaderPrograms() {
+	
+	createShaderCelProgram();
+	createShaderPhongProgram();
+	
+}
+
 ///////////////////////////////////////////////////////////////////////// CAMERA
 
 void MyApp::updateProjMatrices(float ratio) {
-	ProjectionMatrixPerspective = glm::perspective(glm::radians(70.0f), ratio, 1.0f, 100.0f);
+	ProjectionMatrixPerspective = glm::perspective(fovy, ratio, 1.0f, 100.0f);
 }
 
 void MyApp::createCamera() {
 
 	Camera = new mgl::Camera(UBO_BP);
 	Camera->setViewMatrix(glm::lookAt({ initPos1.x,initPos1.y,initPos1.z },
-		lookAtCoord,
+		{ 0.f, lookAtCoordY, 0.f },
 		glm::vec3(0.0f, 1.0f, 0.0f)));
 	Camera->setProjectionMatrix(ProjectionMatrixPerspective);
 
@@ -426,7 +443,7 @@ void MyApp::createCamera() {
 }
 
 void MyApp::createLight() {
-	light.lightPos = {30.f, 40.f, 30.f};
+	light.lightPos = sphericalToCartesian(40.f, 50.f, 80.f);
 	light.lightColor = { 0.9, 0.7, 0.9 };
 }
 
@@ -456,9 +473,9 @@ void MyApp::loadTexture(const std::string& filename, GLuint tex) {
 void MyApp::createTextures() {
 	glGenTextures(NUM_TEXTURES, tex);
 
-	const std::string texFiles[NUM_TEXTURES] = { "../assets/Textures/hist.jpg",  "../assets/Textures/wood.jpg", 
-		"../assets/Textures/Bumps/Google/point.jpg" };
-
+	const std::string texFiles[NUM_TEXTURES] = { "../assets/Textures/marble.jpg",  "../assets/Textures/woodRed.jpg", 
+		"../assets/Textures/Bumps/Yes/ground.png" };
+	
 	for (int i = 0; i < NUM_TEXTURES; i++) {
 		loadTexture(texFiles[i], tex[i]);
 	}
@@ -479,8 +496,6 @@ void MyApp::sendAllTextures() {
 	}
 }
 
-
-
 /////////////////////////////////////////////////////////////////////////// UPDATE
 
 void MyApp::openDoor() {
@@ -497,6 +512,9 @@ void MyApp::moveCamera() {
 
 	float oldAlfa = alfa;
 	alfa = oldAlfa * (1 - parametric_movement_camera) + 1.6f * (parametric_movement_camera);
+
+	float oldLookAtY = lookAtCoordY;
+	lookAtCoordY = oldLookAtY * (1 - parametric_movement_camera) + 0 * (parametric_movement_camera);
 }
 
 void MyApp::enterBuilding() {
@@ -576,7 +594,7 @@ void MyApp::update(GLFWwindow* win) {
 	cameraPos = newPos;
 
 	const glm::mat4 ChangingViewMatrix = glm::lookAt(newPos,
-											lookAtCoord,
+											{ 0.f, lookAtCoordY, 0.f },
 											glm::vec3(0.0f, 1.0f, 0.0f));
 
 	Camera->setViewMatrix(ChangingViewMatrix);
@@ -597,7 +615,6 @@ void MyApp::render() {
 			glUniform3f(ShaderCel->Uniforms[mgl::COLOR_ATTRIBUTE].index, meshes[i].color.x, meshes[i].color.y, meshes[i].color.z);
 			glUniformMatrix4fv(ModelMatrixIdCel, 1, GL_FALSE, glm::value_ptr(meshes[i].transformation));
 			glUniform3f(ShaderCel->Uniforms["lightPos"].index, light.lightPos.x, light.lightPos.y, light.lightPos.z);
-			glUniform1i(ShaderCel->Uniforms["lightHand"].index, lightHand);
 		}
 		else if (meshes[i].shadingMode == silhouette) {
 			ShaderPhong->bind();
@@ -656,7 +673,7 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 		alfa += (float)diffx * 0.1f;
 		accelaration_x += (int)diffx;
 
-		lookAtCoord.y -= (float)diffy * 0.1f;
+		lookAtCoordY -= (float)diffy * 0.1f;
 		accelaration_y -= (int)diffy;
 	}
 	// So we dont overflow it
@@ -668,7 +685,10 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 	old_ypos = ypos;
 
 	alfa += (float)accelaration_x / 10;
-	lookAtCoord.y += (float)accelaration_y / 10;
+	lookAtCoordY += (float)accelaration_y / 10;
+
+	if (lookAtCoordY < lookAtCoordYMin) lookAtCoordY = lookAtCoordYMin;
+	else if (lookAtCoordY > lookAtCoordYMax) lookAtCoordY = lookAtCoordYMax;
 
 	if (-6 < alfa && alfa < 7 && 18 < radius && radius < 30) { 
 		inDoorArea = true;
@@ -692,12 +712,12 @@ void MyApp::processMouseMovement(GLFWwindow * win) {
 void MyApp::initCallback(GLFWwindow * win) {
 	createLight();
 	createMeshes();
-	createShaderPrograms(); // after mesh;
+	createShaderPrograms();
 	createCamera();
 	createTextures();
 
 	//SOUND
-	//SoundEngine->play2D("../assets/Sound/PianoConcerto5.mp3", true);
+	SoundEngine->play2D("../assets/Sound/PianoConcerto5.mp3", true);
 	SoundEngine->setSoundVolume(0);
 
 }
@@ -738,6 +758,7 @@ void MyApp::keyCallback(GLFWwindow* window, int key, int scancode, int action, i
 		lightHand = !lightHand;
 	}
 	if (key == GLFW_KEY_O && action == GLFW_PRESS && door == toOpen) {
+		SoundEngineDoor->play2D("../assets/Sound/doorOpening.mp3", false);
 		doorMoving = true;
 		openDoor();
 	}

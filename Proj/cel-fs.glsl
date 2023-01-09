@@ -8,9 +8,7 @@ in vec3 FragPos;
 out vec4 FragmentColor;
 
 uniform vec3 inColor;
-uniform vec3 camPos;
 uniform vec3 lightPos;
-uniform bool lightHand;
 
 void main(void)
 {

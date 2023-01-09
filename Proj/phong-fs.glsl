@@ -31,9 +31,9 @@ vec3 ambientLight(float ambientStrenght, vec3 lightColor){
 }
 
 vec3 diffuseLight(float diffuseStrenght, vec3 norm, vec3 lightColor, vec3 lightDir, vec3 lightDir2){
-	float intensity1 = max(dot(norm, lightDir), 0.0);
+	float intensity1 = max(dot(norm, lightDir), 0.0) * 0.9;
 	if (lightHand) {
-		float intensity2 = max(dot(norm, lightDir2), 0.0);
+		float intensity2 = max(dot(norm, lightDir2), 0.0) * 0.3;
 		return diffuseStrenght * lightColor * (intensity1 + intensity2);
 	}
 	else
@@ -67,7 +67,7 @@ void main(void)
 
 	
 
-	if (texMode == 4) { //BUMP MAPPING
+	if (texMode == 3) { //BUMP MAPPING
 		//SIMPLE VERSION WITH NO ROTATION
 		// obtain normal from normal map in range [0,1]
 		NexNormal = texture(tex3, exTexcoord).rgb;
@@ -110,7 +110,7 @@ void main(void)
 	
 	if (texMode == 0)		//NO TEXTURE
 		finalColor = vec4(color, 1.0); 
-	else if (texMode == 1) { //GROUND
+	else if (texMode == 1) { //BUILDING
 		texel = texture(tex1, exTexcoord);
 		finalColor = max(vec4(diffuse, 1.0) * texel + vec4(specular, 1.0), vec4(ambient, 1.0) * texel);
 	}
@@ -118,7 +118,7 @@ void main(void)
 		texel = texture(tex2, exTexcoord);
 		finalColor = max(vec4(diffuse, 1.0) * texel + vec4(specular, 1.0), vec4(ambient, 1.0) * texel);
 	} 
-	else if (texMode == 4){ //BUMP MAPPING
+	else if (texMode == 3){ //BUMP MAPPING
 		finalColor = vec4(color, 1.0); 
 	}
 	
