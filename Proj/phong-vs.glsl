@@ -13,7 +13,6 @@ out vec3 exColor;
 out vec3 FragPos;
 
 uniform mat4 ModelMatrix;
-uniform sampler2D tex3;
 
 uniform Camera {
    mat4 ViewMatrix;

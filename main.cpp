@@ -406,7 +406,6 @@ void MyApp::createShaderPhongProgram() {
 	ShaderPhong->addUniform("texMode");
 	ShaderPhong->addUniform("tex1");
 	ShaderPhong->addUniform("tex2");
-	ShaderPhong->addUniform("tex3");
 	ShaderPhong->create();
 
 	ModelMatrixIdPhong = ShaderPhong->Uniforms[mgl::MODEL_MATRIX].index;
