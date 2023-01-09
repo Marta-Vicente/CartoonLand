@@ -23,6 +23,7 @@
 
 #include <irrKlang.h>
 #include <FreeImage.h>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -274,12 +275,6 @@ void MyApp::createMeshes() {
 		phong, { 0.5f, 0.9f, 0.2f, 7.f }, noTexture);
 	//--------------------------------------------------------------------------
 	
-	//SPHERE ON LIGHT POSITION
-	createMeshSolo("light2.obj", { 0.9, 0.9, 0.1 }, 
-		glm::translate(light.lightPos), 
-		phong, { 0.5f, 0.9f, 0.9f, 7.f }, noTexture);
-	//--------------------------------------------------------------------------
-	
 	//GROUND PLANE
 	createMeshSolo("ground.obj", { 0.022f, 0.64f, 0.f }, 
 		glm::translate(glm::vec3(0.f, -0.1f, 0.f)) * glm::scale(glm::vec3(10.f)), 
@@ -302,7 +297,7 @@ void MyApp::createMeshes() {
 //////STATUES
 
 	//EGYPTIAN STATUE
-	/*createMeshesCel("/Statues/egypt.obj", {0.7, 0.56, 0.24},
+	createMeshesCel("/Statues/egypt.obj", {0.7, 0.56, 0.24},
 		glm::translate(sphericalToCartesian(30.f, 93.f, 15.f)) * glm::scale(glm::vec3(0.18f)) * glm::rotate(glm::radians(150.f), glm::vec3(0.f, 1.f, 0.f)) * glm::rotate(glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f)),
 		{ 0.5f, 0.9f, 0.1f, 3.f });
 	//--------------------------------------------------------------------------
@@ -334,7 +329,7 @@ void MyApp::createMeshes() {
 	//MARY STATUE
 	createMeshesCel("/Statues/maria.obj", {0.9, 0.9, 0.9},
 		glm::translate(sphericalToCartesian(330.f, 89.f, 15.f)) *  glm::scale(glm::vec3(0.2f)) * glm::rotate(glm::radians(30.f), glm::vec3(0.f, 1.f, 0.f)),
-		{0.5f, 0.9f, 0.1f, 3.f});*/
+		{0.5f, 0.9f, 0.1f, 3.f});
 	//--------------------------------------------------------------------------
 	
 

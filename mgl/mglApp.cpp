@@ -3,6 +3,8 @@
 #include "mglApp.hpp"
 #include "mglError.hpp"
 
+#include "stb_image.h"
+
 namespace mgl {
 
 /////////////////////////////////////////////////////////////// STATIC CALLBACKS
@@ -89,7 +91,15 @@ void Engine::setupWindow() {
     glfwTerminate();
     exit(EXIT_FAILURE);
   }
+
+  //Window Icon
+  GLFWimage icon[1];
+  icon[0].pixels = stbi_load("../assets/artIcon.png", &icon[0].width, &icon[0].height, 0, 4);
+  glfwSetWindowIcon(Window, 1, icon);
+  stbi_image_free(icon[0].pixels);
+
   glfwMakeContextCurrent(Window);
+
   glfwSwapInterval(Vsync);
 }
 
