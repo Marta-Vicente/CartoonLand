@@ -4,8 +4,6 @@ in vec3 exPosition;
 in vec2 exTexcoord;
 in vec3 exNormal;
 in vec3 FragPos;
-in mat3 TBN;
-in vec3 worldSpaceNormal;
 
 out vec4 FragmentColor;
 
@@ -22,8 +20,6 @@ uniform int texMode;
 
 uniform sampler2D tex1;
 uniform sampler2D tex2;
-uniform sampler2D tex3;
-uniform sampler2D normalMap;
 
 
 vec3 ambientLight(float ambientStrenght, vec3 lightColor){
@@ -67,28 +63,9 @@ void main(void)
 
 	
 
-	if (texMode == 3) { //BUMP MAPPING
-		//SIMPLE VERSION WITH NO ROTATION
-		// obtain normal from normal map in range [0,1]
-		NexNormal = texture(tex3, exTexcoord).rgb;
-		// transform normal vector to range [-1,1]
-		NexNormal = normalize(NexNormal * 2.0 - 1.0);
-
-		//TBN--------------------------------------------------------
-		// obtain normal from normal map in range [0,1]
-		/*NexNormal = texture(tex3, exTexcoord).rgb;
-
-		// transform normal vector to range [-1,1]
-		NexNormal = NexNormal * 2.0 - 1.0; 
-		NexNormal = normalize(TBN * NexNormal);*/
-
-		//CHAT--------------------------------------------------------
-		/*vec2 dTexCoord = dFdx(exTexcoord);
-		vec3 bumpDirection = normalize(vec3(dTexCoord, texture(tex3, exTexcoord + dTexCoord).r - texture(tex3, exTexcoord - dTexCoord).r));
-		float bumpIntensity = texture(tex3, exTexcoord).r;
-		vec3 perturbedNormal = worldSpaceNormal + bumpIntensity * bumpDirection;
-		NexNormal = normalize(perturbedNormal);*/
-
+	if (texMode == 2) { //BUMP MAPPING
+		NexNormal = texture(tex2, exTexcoord).rgb; //to [0,1]
+		NexNormal = normalize(NexNormal * 2.0 - 1.0); //to [-1,1]
 	} 
 	else { //REGULAR NORMALS
 		if (!silhouetteMode){
@@ -110,15 +87,11 @@ void main(void)
 	
 	if (texMode == 0)		//NO TEXTURE
 		finalColor = vec4(color, 1.0); 
-	else if (texMode == 1) { //BUILDING
+	else if (texMode == 1) { //DOOR
 		texel = texture(tex1, exTexcoord);
 		finalColor = max(vec4(diffuse, 1.0) * texel + vec4(specular, 1.0), vec4(ambient, 1.0) * texel);
-	}
-	else if (texMode == 2) { //DOOR
-		texel = texture(tex2, exTexcoord);
-		finalColor = max(vec4(diffuse, 1.0) * texel + vec4(specular, 1.0), vec4(ambient, 1.0) * texel);
 	} 
-	else if (texMode == 3){ //BUMP MAPPING
+	else if (texMode == 2){ //BUMP MAPPING
 		finalColor = vec4(color, 1.0); 
 	}
 	

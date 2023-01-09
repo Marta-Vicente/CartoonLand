@@ -34,7 +34,7 @@ int windowWidth, windowHeight;
 ////////////////////////////////////////////////////////////////////////// VARIABLES
 
 #define BUILDING_RADIUS 20
-#define NUM_TEXTURES 3
+#define NUM_TEXTURES 2
 
 int snapNum = 1;
 int meshDoor;
@@ -57,7 +57,7 @@ enum DoorState {
 };
 
 enum TexMode {
-	noTexture = 0, buildingTex = 1, doorTex = 2, bumpMap = 3
+	noTexture = 0, doorTex = 1, bumpMap = 2
 };
 ////////////////////////////////////////////////////////////////////////// STRUCTS
 
@@ -468,8 +468,8 @@ void MyApp::loadTexture(const std::string& filename, GLuint tex) {
 void MyApp::createTextures() {
 	glGenTextures(NUM_TEXTURES, tex);
 
-	const std::string texFiles[NUM_TEXTURES] = { "../assets/Textures/marble.jpg",  "../assets/Textures/woodRed.jpg", 
-		"../assets/Textures/Bumps/Yes/ground.png" };
+	const std::string texFiles[NUM_TEXTURES] = { "../assets/Textures/woodRed.jpg", 
+		"../assets/Textures/Bumps/ground.png" };
 	
 	for (int i = 0; i < NUM_TEXTURES; i++) {
 		loadTexture(texFiles[i], tex[i]);
