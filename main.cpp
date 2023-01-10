@@ -72,7 +72,6 @@ struct Material{
 struct Mesh_obj
 {
 	mgl::Mesh* Mesh = nullptr;
-	//mgl::ShaderProgram* Shaders = nullptr;
 	glm::vec3 color;
 	glm::mat4 transformation;
 	ShadingMode shadingMode;
@@ -206,8 +205,6 @@ private:
 	//others
 	void snapshot(GLFWwindow* win, int width, int height);
 };
-
-
 
 ///////////////////////////////////////////////////////////////////////// MESHES
 
@@ -478,7 +475,6 @@ void MyApp::createTextures() {
 void MyApp::sendTexture(GLenum unit, GLuint& tex, GLuint v0, const std::string& filename) {
 	glActiveTexture(unit);
 	glBindTexture(GL_TEXTURE_2D, tex);
-	//glUniform1i(tex, v0);
 	glUniform1i(ShaderPhong->Uniforms[filename].index, v0);
 }
 
@@ -558,9 +554,8 @@ void MyApp::checkEnterLeave() {
 	}
 
 	//GO TO FRONT OF THE DOOR
-	if (parametric_movement_camera < 1 && cameraMovingOut) {
+	if (parametric_movement_camera < 1 && cameraMovingOut)
 		moveCamera();
-	}
 	else if (parametric_movement_camera >= 1 && cameraMovingOut) {
 		cameraMovingOut = false;
 		cameraMoving2Out = true;
@@ -568,9 +563,8 @@ void MyApp::checkEnterLeave() {
 	}
 
 	//LEAVE BUILDING
-	if (parametric_movement_camera2 < 1 && cameraMoving2Out) {
+	if (parametric_movement_camera2 < 1 && cameraMoving2Out)
 		exitBuilding();
-	}
 	else if (parametric_movement_camera2 >= 1 && cameraMoving2Out) {
 		cameraMoving2Out = false;
 		parametric_movement_camera2 = 0.f;
@@ -583,7 +577,7 @@ void MyApp::update(GLFWwindow* win) {
 
 	checkEnterLeave();
 
-	//CAMERAS
+	//CAMERA
 	glm::vec3 newPos = sphericalToCartesian(alfa, beta, radius);
 	cameraPos = newPos;
 
@@ -722,7 +716,6 @@ void MyApp::windowSizeCallback(GLFWwindow * win, int winx, int winy) {
 	}
 
 	glViewport(0, 0, winx, winy);
-	// change projection matrices to maintain aspect ratio
 	float ratio = (float)winx / (float)winy;
 
 	windowWidth = winx;
