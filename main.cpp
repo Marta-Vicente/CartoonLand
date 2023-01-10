@@ -334,6 +334,7 @@ void MyApp::createMeshes() {
 		Mesh_obj meshSingle;
 		meshSingle.Mesh = new mgl::Mesh();
 		meshSingle.Mesh->joinIdenticalVertices();
+		meshSingle.Mesh->calculateTangentSpace();
 		meshSingle.Mesh->create(mesh_dir + mv.meshesNames[i]);
 		meshSingle.color = mv.colors[i];
 		meshSingle.transformation = mv.transformations[i];
@@ -346,7 +347,6 @@ void MyApp::createMeshes() {
 	deleteMeshVectors();
 	
 }
-
 
 ///////////////////////////////////////////////////////////////////////// SHADER
 

@@ -3,7 +3,9 @@
 in vec3 exPosition;
 in vec2 exTexcoord;
 in vec3 exNormal;
+in vec3 exTangent;
 in vec3 FragPos;
+in mat3 TBN;
 
 out vec4 FragmentColor;
 
@@ -36,14 +38,14 @@ vec3 diffuseLight(float diffuseStrenght, vec3 norm, vec3 lightColor, vec3 lightD
 		return diffuseStrenght * lightColor * intensity1;
 }
 
-vec3 specularLightPhong(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor, float shineness){
+vec3 specularLightPhong(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor, float shineness, vec3 camPos){
 	vec3 camDir =  normalize(camPos - FragPos);
 	vec3 reflectDir = reflect(-lightDir, norm);
 	float spec = pow(max(dot(camDir, reflectDir), 0.0), shineness);
 	return specularStrength * spec * lightColor;
 }
 
-vec3 specularLightBlinn(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor, float shineness){
+vec3 specularLightBlinn(float specularStrength, vec3 lightDir, vec3 norm, vec3 lightColor, float shineness, vec3 camPos){
 	vec3 camDir =  normalize(camPos - FragPos);
 	vec3 halfVector = normalize(lightDir + camDir);
 	float specIntensity = max(dot(halfVector, norm), 0.0);
@@ -57,31 +59,43 @@ void main(void)
 	float diffuseStrenght = material.y;
 	float specularStrength = material.z;
 	float shineness = material.w;
+
 	vec3 NexNormal;
 	vec4 texel;
 	vec4 finalColor;
+	vec3 camPosTemp;
+	vec3 lightPosTemp;
 
-	
 
 	if (texMode == 2) { //BUMP MAPPING
-		NexNormal = texture(tex2, exTexcoord).rgb; //to [0,1]
-		NexNormal = normalize(NexNormal * 2.0 - 1.0); //to [-1,1]
+		//TBN--------------------------------------------------------
+		//[0,1]
+		NexNormal = texture(tex2, exTexcoord).rgb;
+		//[-1,1]
+		NexNormal = NexNormal * 2.0 - 1.0; 
+		NexNormal = normalize(TBN * NexNormal);
+
+		camPosTemp = TBN * camPos;
+		lightPosTemp = TBN * lightPos;
 	} 
 	else { //REGULAR NORMALS
-		if (!silhouetteMode){
-			NexNormal = normalize(exNormal);
+		camPosTemp = camPos;
+		lightPosTemp = lightPos;
+
+		if (silhouetteMode){
+			NexNormal = normalize(-exNormal);
 		}
 		else{
-			NexNormal = normalize(-exNormal);
+			NexNormal = normalize(exNormal);
 		}
 	}
 	
-	vec3 lightDir = normalize(lightPos - FragPos);
-	vec3 lightDirHand = normalize(camPos - FragPos);
+	vec3 lightDir = normalize(lightPosTemp - FragPos);
+	vec3 lightDirHand = normalize(camPosTemp - FragPos);
 
 	vec3 ambient = ambientLight(ambientStrength, lightColor);
 	vec3 diffuse = diffuseLight(diffuseStrenght, NexNormal, lightColor, lightDir, lightDirHand);
-	vec3 specular = specularLightPhong(specularStrength, lightDir, NexNormal, lightColor, shineness);
+	vec3 specular = specularLightPhong(specularStrength, lightDir, NexNormal, lightColor, shineness, camPosTemp);
 
 	vec3 color = (ambient + diffuse + specular) * inColor;
 	
